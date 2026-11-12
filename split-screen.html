@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Social Tiles - Split Screen Showcase</title>
+<style>
+/* Showcase page. Fixed palette from the design brief; 1920x1080 in the video. */
+:root{
+  --page:#070a16; --panel:#0d1124; --ink:#f1f5ff; --soft:#9fb0d0;
+  --cyan:#22d3ee; --violet:#2563eb; --html:#f97316; --css:#3b82f6; --js:#facc15;
+  --line:rgba(255,255,255,.12); --dark:#0a1023; --mono:'Cascadia Code','Fira Code','JetBrains Mono',Consolas,'DejaVu Sans Mono','Liberation Mono',monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--page);color:var(--ink);font-family:'Poppins',system-ui,sans-serif;overflow:hidden}
+body{background:var(--page)}
+.app{height:100%;display:flex;flex-direction:column;padding:26px 28px 28px}
+
+/* ---- Header ---- */
+.top{height:66px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.brand{display:flex;align-items:center;gap:14px}
+.glow{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--cyan));box-shadow:0 0 14px rgba(139,92,246,.8),0 0 26px rgba(34,211,238,.45)}
+.brand .name{font-size:24px;font-weight:600;letter-spacing:.2px}
+.techs{display:flex;gap:10px;margin-left:6px;align-items:center}
+.techs svg{width:22px;height:22px;display:block}
+.pill{padding:10px 20px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);font-size:16px;font-weight:500;color:#cfe0ff}
+.pill b{color:var(--cyan);font-weight:600}
+
+/* ---- Two panels ---- */
+.split{flex:1;min-height:0;display:flex;flex-direction:column;gap:14px}
+.split > .panel:first-child{flex:1.22 1 0}
+.split > .panel:last-child{flex:.78 1 0}
+.panel{min-width:0;min-height:0;display:flex;flex-direction:column;border-radius:18px;background:var(--panel);border:1px solid var(--line);box-shadow:0 30px 60px rgba(0,0,0,.55);overflow:hidden}
+.titlebar{height:52px;flex:none;display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.03)}
+.traffic{display:flex;gap:8px}
+.traffic i{width:12px;height:12px;border-radius:50%;display:block}
+.traffic .r{background:#ff5f57}.traffic .y{background:#febc2e}.traffic .g{background:#28c840}
+.titlebar .label{font-size:15px;color:var(--soft);margin-left:6px}
+/* Code panel stays dark so the code is easy to read */
+.split > .panel:last-child{background:var(--dark);border-color:rgba(255,255,255,.08)}
+.split > .panel:last-child .titlebar{background:rgba(255,255,255,.03);border-bottom-color:rgba(255,255,255,.1)}
+.split > .panel:last-child .titlebar .label{color:#c4bde0}
+.split > .panel:last-child .tab{color:#b8b2d6}
+.split > .panel:last-child .tab[aria-selected="true"]{background:rgba(255,255,255,.1);color:#fff}
+.split > .panel:last-child .filename{color:#b8b2d6}
+.split > .panel:last-child .copy{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff}
+.split > .panel:last-child .code-area{background:var(--dark)}
+
+/* Live preview */
+.frame{flex:1;width:100%;border:0;background:#eef4ff;display:block}
+
+/* Code panel */
+.tabs{display:flex;align-items:stretch;height:100%;margin-left:6px}
+.tab{position:relative;display:flex;align-items:center;gap:8px;padding:0 14px;border:0;background:transparent;color:var(--soft);font:500 15px 'Poppins',sans-serif;cursor:pointer;border-radius:10px 10px 0 0}
+.tab svg{width:18px;height:18px}
+.tab[aria-selected="true"]{background:rgba(255,255,255,.08);color:var(--ink)}
+.tab[aria-selected="true"]::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:3px;border-radius:3px;background:var(--c)}
+.tab:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+.filename{font-family:var(--mono);font-size:13px;color:var(--soft);margin-left:auto}
+.copy{margin-left:12px;padding:7px 14px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);font:500 13px 'Poppins',sans-serif;cursor:pointer;min-width:74px}
+.copy:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+.code-area{flex:1;min-height:0;overflow:auto;padding:14px 22px 18px;scrollbar-width:thin;scrollbar-color:#2a3350 transparent}
+.code-area::-webkit-scrollbar{width:8px}
+.code-area::-webkit-scrollbar-thumb{background:#2a3350;border-radius:8px}
+.code-pane{margin:0;font-family:var(--mono);font-size:13px;line-height:1.7;color:#e2e8f0;white-space:pre;tab-size:2}
+.code-pane[hidden]{display:none}
+.cm{color:#6b7fa3;font-style:italic}
+.st{color:#86efac}
+.kw{color:#c084fc}
+.tg{color:#fb7185}
+.at{color:#fbbf24}
+.nu{color:#fb923c}
+.fn{color:#60a5fa}
+.pr{color:#93c5fd}
+.bi{color:#5eead4}
+
+/* ---- Intro and ending overlays (driven by the video timeline) ---- */
+.overlay{position:fixed;inset:0;background:var(--page);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;z-index:50;opacity:0}
+#intro{opacity:1}
+#intro .t{font-size:104px;font-weight:600;letter-spacing:-.5px;line-height:1.1;color:#fff}
+#intro .s{font-size:28px;color:var(--soft);letter-spacing:6px;margin-top:18px}
+#intro .h{font-size:34px;color:var(--cyan);margin-top:26px;font-weight:500}
+#ending .a{font-size:30px;color:var(--soft)}
+#ending .b{font-size:70px;font-weight:700;color:var(--cyan);margin:6px 0}
+#ending .c{font-size:24px;color:var(--soft)}
+
+/* Fake cursor: white arrow, black outline. Moved by the recorder. */
+#cursor{position:fixed;left:0;top:0;width:30px;height:30px;z-index:60;pointer-events:none;opacity:0;transform-origin:2px 2px}
+
+/* Credit pill for the intro-free live view is on the demo; header pill is the handle */
+
+/* Portrait (9:16 reel) sizing: bigger code text and intro title so they read on a phone */
+@media (max-width: 1200px) {
+  #intro .t { font-size: 76px; }
+  #intro .s { font-size: 26px; }
+  #intro .h { font-size: 32px; }
+  #ending .b { font-size: 64px; }
+  .code-pane { font-size: 19px; line-height: 1.6; }
+  .tab { font-size: 17px; padding: 0 16px; }
+  .filename { display: none; }
+  .brand .name { font-size: 26px; }
+  .pill { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="glow" aria-hidden="true"></span>
+      <span class="name">3D Social Tiles</span>
+      <span class="techs" aria-label="HTML, CSS and JavaScript">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5 21 4.6l-1.6 13.1L12 22.5l-7.4-4.8L3 4.6z" fill="#f97316"/><text x="12" y="16" text-anchor="middle" font-family="Poppins,sans-serif" font-weight="700" font-size="9" fill="#fff">5</text></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5 21 4.6l-1.6 13.1L12 22.5l-7.4-4.8L3 4.6z" fill="#3b82f6"/><text x="12" y="16" text-anchor="middle" font-family="Poppins,sans-serif" font-weight="700" font-size="9" fill="#fff">3</text></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="3" fill="#facc15"/><text x="12" y="16.5" text-anchor="middle" font-family="Poppins,sans-serif" font-weight="700" font-size="9" fill="#111">JS</text></svg>
+      </span>
+    </div>
+    <div class="pill">Created by <b>@stackanddstyle</b></div>
+  </header>
+
+  <main class="split">
+    <section class="panel" aria-label="Live preview">
+      <div class="titlebar">
+        <span class="traffic" aria-hidden="true"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+        <span class="label">Live Preview</span>
+      </div>
+      <iframe class="frame" id="demo" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+  &lt;title&gt;3D Social Tiles&lt;/title&gt;
+  &lt;style&gt;
+/* =========================================================
+   CHANGE COLORS HERE
+   Edit only the values in this block to restyle the demo.
+   Brand colors for each tile are set on the button (--brand).
+   ========================================================= */
+:root {
+  /* Reference theme: light blue demo area, navy ink, blue accent */
+  --bg-top: #f1f6fe;          /* demo background top */
+  --bg-bottom: #e3ebfb;       /* demo background bottom */
+  --glow-violet: rgba(37, 99, 235, 0.14);   /* soft blue glow */
+  --glow-cyan: rgba(14, 165, 233, 0.12);    /* soft sky glow */
+  --ink: #0f1a33;             /* main text (navy) */
+  --ink-soft: #5b6b8f;        /* hints and captions */
+  --accent-a: #2563eb;        /* accent blue */
+  --accent-b: #0ea5e9;        /* accent sky */
+  --icon-idle: #0f1f44;       /* icon colour before hover (navy) */
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-edge: rgba(255, 255, 255, 0.95);
+  --field: #ffffff;
+  --field-line: rgba(37, 99, 235, 0.25);
+  --credit-bg: #0f1f44;       /* navy credit pill */
+  --credit-ink: #ffffff;
+  /* ========================================================= */
+  --focus: 0 0 0 3px rgba(37, 99, 235, 0.45);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+
+body {
+  font-family: &#x27;Poppins&#x27;, system-ui, -apple-system, &#x27;Segoe UI&#x27;, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  overflow: hidden;
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- Layout ---------- */
+.demo {
+  min-height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 22px;
+  padding: 28px 20px 60px;
+}
+.demo__title {
+  margin: 0; font-size: 32px; font-weight: 700;
+  font-family: &#x27;Fredoka&#x27;, &#x27;Poppins&#x27;, system-ui, sans-serif;
+  color: var(--ink);
+}
+
+.demo__controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+.demo__search, .demo__btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--field-line);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit; font-size: 15px;
+  backdrop-filter: blur(8px);
+}
+.demo__search { width: 220px; }
+.demo__search::placeholder { color: var(--ink-soft); }
+.demo__btn { cursor: pointer; }
+.demo__btn[aria-pressed=&quot;false&quot;] { opacity: 0.6; }
+.demo__btn { color: var(--ink); }
+
+.demo__search:focus-visible, .demo__btn:focus-visible, .tile:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 30px; }
+
+.demo__hint { margin: 0; color: var(--ink-soft); font-size: 16px; min-height: 1.4em; }
+
+/* ---------- Glass social tiles ---------- */
+.stage {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 34px 36px;
+  perspective: 800px;
+  padding: 20px;
+  max-width: 1000px;
+}
+
+/* Each slot keeps the tile and its label together.
+   The JS script sets --lift (0..1) and --hide (0..1) on the slot. */
+.slot {
+  --lift: 0;
+  --hide: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  opacity: calc(1 - var(--hide));
+  transform: scale(calc(1 - var(--hide) * 0.5));
+}
+
+.tile {
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  width: 150px; height: 150px;
+  border: 0; padding: 0; background: none; cursor: pointer;
+  transform:
+    perspective(700px)
+    rotateX(var(--rx)) rotateY(var(--ry))
+    translateY(calc(var(--lift) * -12px));
+  will-change: transform;
+}
+
+/* The glass square */
+.tile__glass {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  border-radius: 32px;
+  background: var(--glass);
+  border: 1.5px solid var(--glass-edge);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 16px 34px rgba(37, 99, 235, 0.16);
+}
+
+/* Glow in the brand colour when lifted or selected */
+.tile[aria-pressed=&quot;true&quot;] .tile__glass,
+.tile:hover .tile__glass {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 18px 40px color-mix(in srgb, var(--brand) 38%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+.ic { width: 68px; height: 68px; color: var(--icon-idle); transition: none; }
+
+/* Idle: all icon parts show in slate. Mark (letter) is white.
+   On hover or select the shape takes the brand&#x27;s original colour. */
+.ic .shape { fill: currentColor; }
+.ic .mark  { fill: #ffffff; }
+.ic .ig    { fill: none; stroke: currentColor; }
+.ic .igdot { fill: currentColor; }
+.ic .tt-c, .ic .tt-p { fill: #25F4EE; opacity: 0; }
+.ic .tt-p  { fill: #FE2C55; }
+
+.tile:hover .ic, .tile[aria-pressed=&quot;true&quot;] .ic { color: var(--brand); }
+.tile:hover .ic .ig, .tile[aria-pressed=&quot;true&quot;] .ic .ig { stroke: url(#igGrad); }
+.tile:hover .ic .igdot, .tile[aria-pressed=&quot;true&quot;] .ic .igdot { fill: url(#igGrad); }
+.tile:hover .ic .tt-c, .tile[aria-pressed=&quot;true&quot;] .ic .tt-c,
+.tile:hover .ic .tt-p, .tile[aria-pressed=&quot;true&quot;] .ic .tt-p { opacity: 1; }
+.tile:hover .ic .mark, .tile[aria-pressed=&quot;true&quot;] .ic .mark { fill: #ffffff; }
+
+.tile__label {
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+  pointer-events: none;
+}
+.tile[aria-pressed=&quot;true&quot;] ~ .tile__label, .slot:has(.tile[aria-pressed=&quot;true&quot;]) .tile__label { color: var(--brand); font-weight: 600; }
+
+/* ---------- Credit pill ---------- */
+.credit {
+  position: fixed; right: 18px; bottom: 16px;
+  padding: 8px 14px; border-radius: 999px;
+  background: var(--credit-bg);
+  border: 1px solid rgba(15, 31, 68, 0.25);
+  color: var(--credit-ink);
+  font-size: 13px; font-weight: 500;
+  backdrop-filter: blur(6px);
+}
+
+/* ---------- Reduced motion: no motion, changes are instant ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tile { will-change: auto; }
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 560px) {
+  .tile { width: 110px; height: 110px; }
+  .ic { width: 50px; height: 50px; }
+  .stage { gap: 22px 18px; }
+  .demo__search { width: 160px; }
+}
+
+/* ---------- Big, readable demo on wide screens (reels and desktop) ---------- */
+@media (min-width: 900px) {
+  .demo { gap: 22px; padding: 44px 24px 120px; justify-content: flex-start; }
+  .demo__title { font-size: 54px; }
+  .demo__controls { gap: 14px; }
+  .demo__search { width: 360px; font-size: 25px; padding: 14px 20px; border-radius: 18px; }
+  .demo__btn { font-size: 25px; padding: 14px 22px; border-radius: 18px; }
+  .demo__hint { font-size: 26px; }
+  .stage { gap: 30px 36px; padding: 6px; max-width: 780px; }
+  .slot { gap: 14px; }
+  .tile { width: 210px; height: 210px; }
+  .tile__glass { border-radius: 46px; }
+  .ic { width: 102px; height: 102px; }
+  .tile__label { font-size: 29px; }
+  .credit { font-size: 22px; padding: 12px 20px; }
+}
+
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;!-- Shared gradient used by the Instagram logo when it is active --&gt;
+  &lt;svg width=&quot;0&quot; height=&quot;0&quot; style=&quot;position:absolute&quot; aria-hidden=&quot;true&quot; focusable=&quot;false&quot;&gt;
+    &lt;defs&gt;
+      &lt;linearGradient id=&quot;igGrad&quot; x1=&quot;0&quot; y1=&quot;1&quot; x2=&quot;1&quot; y2=&quot;0&quot;&gt;
+        &lt;stop offset=&quot;0&quot; stop-color=&quot;#FEDA75&quot;/&gt;
+        &lt;stop offset=&quot;.35&quot; stop-color=&quot;#FA7E1E&quot;/&gt;
+        &lt;stop offset=&quot;.65&quot; stop-color=&quot;#D62976&quot;/&gt;
+        &lt;stop offset=&quot;1&quot; stop-color=&quot;#4F5BD5&quot;/&gt;
+      &lt;/linearGradient&gt;
+    &lt;/defs&gt;
+  &lt;/svg&gt;
+
+  &lt;main class=&quot;demo&quot; aria-labelledby=&quot;demo-title&quot;&gt;
+    &lt;h1 id=&quot;demo-title&quot; class=&quot;demo__title&quot;&gt;Social Tiles&lt;/h1&gt;
+
+    &lt;div class=&quot;demo__controls&quot;&gt;
+      &lt;label class=&quot;visually-hidden&quot; for=&quot;search&quot;&gt;Search tiles&lt;/label&gt;
+      &lt;input id=&quot;search&quot; class=&quot;demo__search&quot; type=&quot;search&quot; placeholder=&quot;Search tiles...&quot; autocomplete=&quot;off&quot;&gt;
+      &lt;button id=&quot;reset&quot; class=&quot;demo__btn&quot; type=&quot;button&quot;&gt;Reset&lt;/button&gt;
+      &lt;button id=&quot;sound&quot; class=&quot;demo__btn&quot; type=&quot;button&quot; aria-pressed=&quot;true&quot;&gt;Sound: On&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;stage&quot; id=&quot;stage&quot; role=&quot;group&quot; aria-label=&quot;Social media tiles&quot;&gt;
+
+      &lt;div class=&quot;slot&quot;&gt;
+        &lt;button class=&quot;tile&quot; type=&quot;button&quot; data-id=&quot;facebook&quot; data-label=&quot;Facebook&quot; aria-pressed=&quot;false&quot; aria-label=&quot;Facebook&quot; style=&quot;--brand:#1877F2&quot;&gt;
+          &lt;span class=&quot;tile__glass&quot;&gt;
+            &lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot;&gt;
+              &lt;circle class=&quot;shape&quot; cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;10&quot;/&gt;
+              &lt;path class=&quot;mark&quot; d=&quot;M13.5 22v-7.5h2.5l.4-3h-2.9V9.7c0-.9.3-1.5 1.5-1.5h1.5V5.6c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.2H8.8v3h2.5V22z&quot;/&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class=&quot;tile__label&quot;&gt;Facebook&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;slot&quot;&gt;
+        &lt;button class=&quot;tile&quot; type=&quot;button&quot; data-id=&quot;instagram&quot; data-label=&quot;Instagram&quot; aria-pressed=&quot;false&quot; aria-label=&quot;Instagram&quot; style=&quot;--brand:#E1306C&quot;&gt;
+          &lt;span class=&quot;tile__glass&quot;&gt;
+            &lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot;&gt;
+              &lt;rect class=&quot;ig&quot; x=&quot;3&quot; y=&quot;3&quot; width=&quot;18&quot; height=&quot;18&quot; rx=&quot;5&quot; fill=&quot;none&quot; stroke-width=&quot;2.2&quot;/&gt;
+              &lt;circle class=&quot;ig&quot; cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;4&quot; fill=&quot;none&quot; stroke-width=&quot;2.2&quot;/&gt;
+              &lt;circle class=&quot;igdot&quot; cx=&quot;17.4&quot; cy=&quot;6.6&quot; r=&quot;1.3&quot;/&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class=&quot;tile__label&quot;&gt;Instagram&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;slot&quot;&gt;
+        &lt;button class=&quot;tile&quot; type=&quot;button&quot; data-id=&quot;tiktok&quot; data-label=&quot;TikTok&quot; aria-pressed=&quot;false&quot; aria-label=&quot;TikTok&quot; style=&quot;--brand:#111111&quot;&gt;
+          &lt;span class=&quot;tile__glass&quot;&gt;
+            &lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot;&gt;
+              &lt;path class=&quot;tt-c&quot; transform=&quot;translate(-.9 -.6)&quot; d=&quot;M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z&quot;/&gt;
+              &lt;path class=&quot;tt-p&quot; transform=&quot;translate(.9 .6)&quot; d=&quot;M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z&quot;/&gt;
+              &lt;path class=&quot;shape&quot; d=&quot;M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z&quot;/&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class=&quot;tile__label&quot;&gt;TikTok&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;slot&quot;&gt;
+        &lt;button class=&quot;tile&quot; type=&quot;button&quot; data-id=&quot;pinterest&quot; data-label=&quot;Pinterest&quot; aria-pressed=&quot;false&quot; aria-label=&quot;Pinterest&quot; style=&quot;--brand:#E60023&quot;&gt;
+          &lt;span class=&quot;tile__glass&quot;&gt;
+            &lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot;&gt;
+              &lt;circle class=&quot;shape&quot; cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;10&quot;/&gt;
+              &lt;text class=&quot;mark&quot; x=&quot;12&quot; y=&quot;16.8&quot; text-anchor=&quot;middle&quot; font-family=&quot;Poppins, Arial, sans-serif&quot; font-weight=&quot;700&quot; font-size=&quot;13&quot;&gt;P&lt;/text&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class=&quot;tile__label&quot;&gt;Pinterest&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;slot&quot;&gt;
+        &lt;button class=&quot;tile&quot; type=&quot;button&quot; data-id=&quot;linkedin&quot; data-label=&quot;LinkedIn&quot; aria-pressed=&quot;false&quot; aria-label=&quot;LinkedIn&quot; style=&quot;--brand:#0A66C2&quot;&gt;
+          &lt;span class=&quot;tile__glass&quot;&gt;
+            &lt;svg class=&quot;ic&quot; viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot;&gt;
+              &lt;rect class=&quot;shape&quot; x=&quot;2&quot; y=&quot;2&quot; width=&quot;20&quot; height=&quot;20&quot; rx=&quot;4&quot;/&gt;
+              &lt;path class=&quot;mark&quot; d=&quot;M6.2 9.6h2.6v8.2H6.2zM7.5 5.4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM10.6 9.6h2.5v1.2c.4-.7 1.3-1.4 2.7-1.4 2.8 0 3.3 1.8 3.3 4.2v4.2h-2.6v-3.7c0-.9 0-2.1-1.3-2.1s-1.5 1-1.5 2v3.8h-2.6z&quot;/&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class=&quot;tile__label&quot;&gt;LinkedIn&lt;/span&gt;
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+
+    &lt;p class=&quot;demo__hint&quot; id=&quot;hint&quot; aria-live=&quot;polite&quot;&gt;Hover a tile to see its brand color. Click to select.&lt;/p&gt;
+  &lt;/main&gt;
+
+  &lt;div class=&quot;credit&quot;&gt;Created by @stackanddstyle&lt;/div&gt;
+  &lt;script&gt;
+/* =========================================================
+   3D Social Tiles - behaviour
+   - Hover: the tile tilts toward the cursor and shows its brand colour
+   - Click: selects the tile (saved between visits); a short sound plays
+   - Search: typing hides tiles that do not match
+   - Keyboard: Tab / arrows to move, Enter or Space to select, R to reset
+   - Motion is eased once per animation frame; reduced-motion users get instant changes
+   ========================================================= */
+
+(function () {
+  &#x27;use strict&#x27;;
+
+  const STORAGE_KEY = &#x27;social-tiles:selected&#x27;;
+  const SOUND_KEY = &#x27;social-tiles:sound&#x27;;
+  const reduceMotion = window.matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches;
+  const EASE = reduceMotion ? 1 : 0.18;   // 1 = jump straight to the target
+
+  const stage = document.getElementById(&#x27;stage&#x27;);
+  const search = document.getElementById(&#x27;search&#x27;);
+  const resetBtn = document.getElementById(&#x27;reset&#x27;);
+  const soundBtn = document.getElementById(&#x27;sound&#x27;);
+  const hint = document.getElementById(&#x27;hint&#x27;);
+  const tiles = Array.from(stage.querySelectorAll(&#x27;.tile&#x27;));
+
+  // Per-tile animation state: current values move toward the targets each frame
+  const state = new Map();
+  tiles.forEach((tile) =&gt; {
+    state.set(tile, {
+      lift: 0, hide: 0, hideTarget: 0,
+      rx: 0, ry: 0, tx: 0, ty: 0,     // tilt now and target
+      hover: false, selected: false,
+    });
+  });
+
+  /* ---------- Saved state (storage can fail, so guard it) ---------- */
+  function loadSaved() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || &#x27;[]&#x27;);
+      return Array.isArray(saved) ? saved : [];
+    } catch (err) { return []; }
+  }
+  function saveSelected() {
+    const ids = tiles.filter((t) =&gt; state.get(t).selected).map((t) =&gt; t.dataset.id);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)); } catch (err) { /* forget silently */ }
+  }
+  function loadSoundPref() {
+    try { return localStorage.getItem(SOUND_KEY) !== &#x27;off&#x27;; } catch (err) { return true; }
+  }
+  function saveSoundPref(on) {
+    try { localStorage.setItem(SOUND_KEY, on ? &#x27;on&#x27; : &#x27;off&#x27;); } catch (err) { /* ignore */ }
+  }
+
+  /* ---------- Sound: short synthesized tones (no audio files needed) ---------- */
+  let audioCtx = null;
+  let soundOn = loadSoundPref();
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx &amp;&amp; audioCtx.state === &#x27;suspended&#x27;) audioCtx.resume();
+    return audioCtx;
+  }
+
+  // A tone that glides from freqA to freqB and fades out
+  function tone(freqA, freqB, dur, vol) {
+    if (!soundOn) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    osc.type = &#x27;sine&#x27;;
+    osc.frequency.setValueAtTime(freqA, now);
+    osc.frequency.exponentialRampToValueAtTime(freqB, now + dur);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(vol, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+  const playSelect = () =&gt; tone(520, 880, 0.12, 0.18);
+  const playReset = () =&gt; tone(880, 440, 0.22, 0.14);
+
+  function setSoundButton() {
+    soundBtn.setAttribute(&#x27;aria-pressed&#x27;, soundOn ? &#x27;true&#x27; : &#x27;false&#x27;);
+    soundBtn.textContent = &#x27;Sound: &#x27; + (soundOn ? &#x27;On&#x27; : &#x27;Off&#x27;);
+  }
+
+  /* ---------- Helpers ---------- */
+  function setPressed(tile, on) { tile.setAttribute(&#x27;aria-pressed&#x27;, on ? &#x27;true&#x27; : &#x27;false&#x27;); }
+  function selectedCount() { return tiles.filter((t) =&gt; state.get(t).selected).length; }
+  function updateHint(message) {
+    hint.textContent = message || (selectedCount() + &#x27; selected. Press R to reset.&#x27;);
+  }
+
+  /* ---------- Actions ---------- */
+  function toggleTile(tile) {
+    const s = state.get(tile);
+    s.selected = !s.selected;
+    setPressed(tile, s.selected);
+    saveSelected();
+    playSelect();
+    updateHint(tile.dataset.label + (s.selected ? &#x27; selected. &#x27; : &#x27; cleared. &#x27;) + selectedCount() + &#x27; selected.&#x27;);
+  }
+
+  function applySearch() {
+    const q = search.value.trim().toLowerCase();
+    tiles.forEach((t) =&gt; {
+      const match = q === &#x27;&#x27; || t.dataset.label.toLowerCase().includes(q);
+      state.get(t).hideTarget = match ? 0 : 1;
+      t.dataset.match = match ? &#x27;yes&#x27; : &#x27;no&#x27;;
+    });
+    const visible = tiles.filter((t) =&gt; t.dataset.match === &#x27;yes&#x27;).length;
+    updateHint(q ? visible + &#x27; tile(s) match &quot;&#x27; + search.value.trim() + &#x27;&quot;.&#x27; : undefined);
+  }
+
+  function resetAll() {
+    search.value = &#x27;&#x27;;
+    tiles.forEach((t) =&gt; { state.get(t).selected = false; setPressed(t, false); });
+    saveSelected();
+    applySearch();
+    playReset();
+    updateHint(&#x27;Reset. Hover a tile to see its brand colour.&#x27;);
+  }
+
+  /* ---------- Pointer tilt: the tile leans toward the cursor ---------- */
+  function tiltFromPointer(tile, e) {
+    const r = tile.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;    // -0.5..0.5
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    const s = state.get(tile);
+    s.tx = py * -16;    // rotateX (degrees)
+    s.ty = px * 16;     // rotateY (degrees)
+  }
+
+  /* ---------- Events ---------- */
+  tiles.forEach((tile) =&gt; {
+    tile.addEventListener(&#x27;click&#x27;, () =&gt; { ensureAudio(); toggleTile(tile); });
+    tile.addEventListener(&#x27;pointerenter&#x27;, (e) =&gt; { state.get(tile).hover = true; tiltFromPointer(tile, e); });
+    tile.addEventListener(&#x27;pointermove&#x27;, (e) =&gt; tiltFromPointer(tile, e));
+    tile.addEventListener(&#x27;pointerleave&#x27;, () =&gt; { const s = state.get(tile); s.hover = false; s.tx = 0; s.ty = 0; });
+    tile.addEventListener(&#x27;focus&#x27;, () =&gt; { state.get(tile).hover = true; });
+    tile.addEventListener(&#x27;blur&#x27;, () =&gt; { state.get(tile).hover = false; });
+  });
+
+  stage.addEventListener(&#x27;keydown&#x27;, (e) =&gt; {
+    const idx = tiles.indexOf(document.activeElement);
+    if (idx &lt; 0) return;
+    if (e.key === &#x27;ArrowRight&#x27; || e.key === &#x27;ArrowLeft&#x27;) {
+      e.preventDefault();
+      const next = (idx + (e.key === &#x27;ArrowRight&#x27; ? 1 : tiles.length - 1)) % tiles.length;
+      tiles[next].focus();
+    }
+  });
+
+  search.addEventListener(&#x27;input&#x27;, applySearch);
+  resetBtn.addEventListener(&#x27;click&#x27;, () =&gt; { ensureAudio(); resetAll(); });
+  soundBtn.addEventListener(&#x27;click&#x27;, () =&gt; {
+    soundOn = !soundOn;
+    saveSoundPref(soundOn);
+    setSoundButton();
+    if (soundOn) { ensureAudio(); playSelect(); }
+  });
+
+  document.addEventListener(&#x27;keydown&#x27;, (e) =&gt; {
+    const typing = e.target instanceof HTMLInputElement;
+    if (!typing &amp;&amp; (e.key === &#x27;r&#x27; || e.key === &#x27;R&#x27;)) resetAll();
+  });
+
+  /* ---------- Restore saved selection ---------- */
+  const saved = loadSaved();
+  tiles.forEach((t) =&gt; {
+    const on = saved.includes(t.dataset.id);
+    state.get(t).selected = on;
+    setPressed(t, on);
+  });
+  setSoundButton();
+  updateHint();
+
+  /* ---------- Animation loop: ease every value toward its target once per frame ---------- */
+  function frame() {
+    tiles.forEach((tile) =&gt; {
+      const s = state.get(tile);
+      const liftTarget = s.selected ? 1 : s.hover ? 0.6 : 0;
+
+      s.lift += (liftTarget - s.lift) * EASE;
+      s.hide += (s.hideTarget - s.hide) * EASE;
+      s.rx += (s.tx - s.rx) * EASE;
+      s.ry += (s.ty - s.ry) * EASE;
+
+      if (Math.abs(liftTarget - s.lift) &lt; 0.001) s.lift = liftTarget;
+      if (Math.abs(s.hideTarget - s.hide) &lt; 0.001) s.hide = s.hideTarget;
+
+      tile.style.setProperty(&#x27;--rx&#x27;, s.rx.toFixed(3) + &#x27;deg&#x27;);
+      tile.style.setProperty(&#x27;--ry&#x27;, s.ry.toFixed(3) + &#x27;deg&#x27;);
+      const slot = tile.parentElement;   // lift and hide live on the slot
+      slot.style.setProperty(&#x27;--lift&#x27;, s.lift.toFixed(4));
+      slot.style.setProperty(&#x27;--hide&#x27;, s.hide.toFixed(4));
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" title="Live demo of 3D Social Tiles"></iframe>
+    </section>
+
+    <section class="panel" aria-label="Source code">
+      <div class="titlebar">
+        <span class="traffic" aria-hidden="true"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+        <div class="tabs" role="tablist" aria-label="Source files">
+          <button class="tab" role="tab" id="tab-html" aria-controls="codeArea" aria-selected="true" data-key="html" style="--c:var(--html)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5 21 4.6l-1.6 13.1L12 22.5l-7.4-4.8L3 4.6z" fill="#f97316"/><text x="12" y="16" text-anchor="middle" font-family="Poppins,sans-serif" font-weight="700" font-size="9" fill="#fff">5</text></svg>HTML
+          </button>
+          <button class="tab" role="tab" id="tab-css" aria-controls="codeArea" aria-selected="false" data-key="css" style="--c:var(--css)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5 21 4.6l-1.6 13.1L12 22.5l-7.4-4.8L3 4.6z" fill="#3b82f6"/><text x="12" y="16" text-anchor="middle" font-family="Poppins,sans-serif" font-weight="700" font-size="9" fill="#fff">3</text></svg>CSS
+          </button>
+          <button class="tab" role="tab" id="tab-js" aria-controls="codeArea" aria-selected="false" data-key="js" style="--c:var(--js)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="3" fill="#facc15"/><text x="12" y="16.5" text-anchor="middle" font-family="Poppins,sans-serif" font-weight="700" font-size="9" fill="#111">JS</text></svg>JS
+          </button>
+        </div>
+        <span class="filename" id="filename">index.html</span>
+        <button class="copy" id="copyBtn" type="button">Copy</button>
+      </div>
+      <div class="code-area" id="codeArea" tabindex="0" aria-labelledby="tab-html">
+<pre class="code-pane" data-pane="html" ><code><span class="cm">&lt;!DOCTYPE html&gt;</span>
+&lt;<span class="tg">html</span> <span class="at">lang</span>=<span class="st">"en"</span>&gt;
+&lt;<span class="tg">head</span>&gt;
+  &lt;<span class="tg">meta</span> <span class="at">charset</span>=<span class="st">"UTF-8"</span>&gt;
+  &lt;<span class="tg">meta</span> <span class="at">name</span>=<span class="st">"viewport"</span> <span class="at">content</span>=<span class="st">"width=device-width, initial-scale=1"</span>&gt;
+  &lt;<span class="tg">title</span>&gt;3D Social Tiles&lt;/<span class="tg">title</span>&gt;
+  &lt;<span class="tg">link</span> <span class="at">rel</span>=<span class="st">"stylesheet"</span> <span class="at">href</span>=<span class="st">"style.css"</span>&gt;
+&lt;/<span class="tg">head</span>&gt;
+&lt;<span class="tg">body</span>&gt;
+  <span class="cm">&lt;!-- Shared gradient used by the Instagram logo when it is active --&gt;</span>
+  &lt;<span class="tg">svg</span> <span class="at">width</span>=<span class="st">"0"</span> <span class="at">height</span>=<span class="st">"0"</span> <span class="at">style</span>=<span class="st">"position:absolute"</span> <span class="at">aria-hidden</span>=<span class="st">"true"</span> <span class="at">focusable</span>=<span class="st">"false"</span>&gt;
+    &lt;<span class="tg">defs</span>&gt;
+      &lt;<span class="tg">linearGradient</span> <span class="at">id</span>=<span class="st">"igGrad"</span> <span class="at">x1</span>=<span class="st">"0"</span> <span class="at">y1</span>=<span class="st">"1"</span> <span class="at">x2</span>=<span class="st">"1"</span> <span class="at">y2</span>=<span class="st">"0"</span>&gt;
+        &lt;<span class="tg">stop</span> <span class="at">offset</span>=<span class="st">"0"</span> <span class="at">stop-color</span>=<span class="st">"#FEDA75"</span>/&gt;
+        &lt;<span class="tg">stop</span> <span class="at">offset</span>=<span class="st">".35"</span> <span class="at">stop-color</span>=<span class="st">"#FA7E1E"</span>/&gt;
+        &lt;<span class="tg">stop</span> <span class="at">offset</span>=<span class="st">".65"</span> <span class="at">stop-color</span>=<span class="st">"#D62976"</span>/&gt;
+        &lt;<span class="tg">stop</span> <span class="at">offset</span>=<span class="st">"1"</span> <span class="at">stop-color</span>=<span class="st">"#4F5BD5"</span>/&gt;
+      &lt;/<span class="tg">linearGradient</span>&gt;
+    &lt;/<span class="tg">defs</span>&gt;
+  &lt;/<span class="tg">svg</span>&gt;
+
+  &lt;<span class="tg">main</span> <span class="at">class</span>=<span class="st">"demo"</span> <span class="at">aria-labelledby</span>=<span class="st">"demo-title"</span>&gt;
+    &lt;<span class="tg">h1</span> <span class="at">id</span>=<span class="st">"demo-title"</span> <span class="at">class</span>=<span class="st">"demo__title"</span>&gt;Social Tiles&lt;/<span class="tg">h1</span>&gt;
+
+    &lt;<span class="tg">div</span> <span class="at">class</span>=<span class="st">"demo__controls"</span>&gt;
+      &lt;<span class="tg">label</span> <span class="at">class</span>=<span class="st">"visually-hidden"</span> <span class="at">for</span>=<span class="st">"search"</span>&gt;Search tiles&lt;/<span class="tg">label</span>&gt;
+      &lt;<span class="tg">input</span> <span class="at">id</span>=<span class="st">"search"</span> <span class="at">class</span>=<span class="st">"demo__search"</span> <span class="at">type</span>=<span class="st">"search"</span> <span class="at">placeholder</span>=<span class="st">"Search tiles..."</span> <span class="at">autocomplete</span>=<span class="st">"off"</span>&gt;
+      &lt;<span class="tg">button</span> <span class="at">id</span>=<span class="st">"reset"</span> <span class="at">class</span>=<span class="st">"demo__btn"</span> <span class="at">type</span>=<span class="st">"button"</span>&gt;Reset&lt;/<span class="tg">button</span>&gt;
+      &lt;<span class="tg">button</span> <span class="at">id</span>=<span class="st">"sound"</span> <span class="at">class</span>=<span class="st">"demo__btn"</span> <span class="at">type</span>=<span class="st">"button"</span> <span class="at">aria-pressed</span>=<span class="st">"true"</span>&gt;Sound: On&lt;/<span class="tg">button</span>&gt;
+    &lt;/<span class="tg">div</span>&gt;
+
+    &lt;<span class="tg">div</span> <span class="at">class</span>=<span class="st">"stage"</span> <span class="at">id</span>=<span class="st">"stage"</span> <span class="at">role</span>=<span class="st">"group"</span> <span class="at">aria-label</span>=<span class="st">"Social media tiles"</span>&gt;
+
+      &lt;<span class="tg">div</span> <span class="at">class</span>=<span class="st">"slot"</span>&gt;
+        &lt;<span class="tg">button</span> <span class="at">class</span>=<span class="st">"tile"</span> <span class="at">type</span>=<span class="st">"button"</span> <span class="at">data-id</span>=<span class="st">"facebook"</span> <span class="at">data-label</span>=<span class="st">"Facebook"</span> <span class="at">aria-pressed</span>=<span class="st">"false"</span> <span class="at">aria-label</span>=<span class="st">"Facebook"</span> <span class="at">style</span>=<span class="st">"--brand:#1877F2"</span>&gt;
+          &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__glass"</span>&gt;
+            &lt;<span class="tg">svg</span> <span class="at">class</span>=<span class="st">"ic"</span> <span class="at">viewBox</span>=<span class="st">"0 0 24 24"</span> <span class="at">aria-hidden</span>=<span class="st">"true"</span>&gt;
+              &lt;<span class="tg">circle</span> <span class="at">class</span>=<span class="st">"shape"</span> <span class="at">cx</span>=<span class="st">"12"</span> <span class="at">cy</span>=<span class="st">"12"</span> <span class="at">r</span>=<span class="st">"10"</span>/&gt;
+              &lt;<span class="tg">path</span> <span class="at">class</span>=<span class="st">"mark"</span> <span class="at">d</span>=<span class="st">"M13.5 22v-7.5h2.5l.4-3h-2.9V9.7c0-.9.3-1.5 1.5-1.5h1.5V5.6c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.2H8.8v3h2.5V22z"</span>/&gt;
+            &lt;/<span class="tg">svg</span>&gt;
+          &lt;/<span class="tg">span</span>&gt;
+        &lt;/<span class="tg">button</span>&gt;
+        &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__label"</span>&gt;Facebook&lt;/<span class="tg">span</span>&gt;
+      &lt;/<span class="tg">div</span>&gt;
+
+      &lt;<span class="tg">div</span> <span class="at">class</span>=<span class="st">"slot"</span>&gt;
+        &lt;<span class="tg">button</span> <span class="at">class</span>=<span class="st">"tile"</span> <span class="at">type</span>=<span class="st">"button"</span> <span class="at">data-id</span>=<span class="st">"instagram"</span> <span class="at">data-label</span>=<span class="st">"Instagram"</span> <span class="at">aria-pressed</span>=<span class="st">"false"</span> <span class="at">aria-label</span>=<span class="st">"Instagram"</span> <span class="at">style</span>=<span class="st">"--brand:#E1306C"</span>&gt;
+          &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__glass"</span>&gt;
+            &lt;<span class="tg">svg</span> <span class="at">class</span>=<span class="st">"ic"</span> <span class="at">viewBox</span>=<span class="st">"0 0 24 24"</span> <span class="at">aria-hidden</span>=<span class="st">"true"</span>&gt;
+              &lt;<span class="tg">rect</span> <span class="at">class</span>=<span class="st">"ig"</span> <span class="at">x</span>=<span class="st">"3"</span> <span class="at">y</span>=<span class="st">"3"</span> <span class="at">width</span>=<span class="st">"18"</span> <span class="at">height</span>=<span class="st">"18"</span> <span class="at">rx</span>=<span class="st">"5"</span> <span class="at">fill</span>=<span class="st">"none"</span> <span class="at">stroke-width</span>=<span class="st">"2.2"</span>/&gt;
+              &lt;<span class="tg">circle</span> <span class="at">class</span>=<span class="st">"ig"</span> <span class="at">cx</span>=<span class="st">"12"</span> <span class="at">cy</span>=<span class="st">"12"</span> <span class="at">r</span>=<span class="st">"4"</span> <span class="at">fill</span>=<span class="st">"none"</span> <span class="at">stroke-width</span>=<span class="st">"2.2"</span>/&gt;
+              &lt;<span class="tg">circle</span> <span class="at">class</span>=<span class="st">"igdot"</span> <span class="at">cx</span>=<span class="st">"17.4"</span> <span class="at">cy</span>=<span class="st">"6.6"</span> <span class="at">r</span>=<span class="st">"1.3"</span>/&gt;
+            &lt;/<span class="tg">svg</span>&gt;
+          &lt;/<span class="tg">span</span>&gt;
+        &lt;/<span class="tg">button</span>&gt;
+        &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__label"</span>&gt;Instagram&lt;/<span class="tg">span</span>&gt;
+      &lt;/<span class="tg">div</span>&gt;
+
+      &lt;<span class="tg">div</span> <span class="at">class</span>=<span class="st">"slot"</span>&gt;
+        &lt;<span class="tg">button</span> <span class="at">class</span>=<span class="st">"tile"</span> <span class="at">type</span>=<span class="st">"button"</span> <span class="at">data-id</span>=<span class="st">"tiktok"</span> <span class="at">data-label</span>=<span class="st">"TikTok"</span> <span class="at">aria-pressed</span>=<span class="st">"false"</span> <span class="at">aria-label</span>=<span class="st">"TikTok"</span> <span class="at">style</span>=<span class="st">"--brand:#111111"</span>&gt;
+          &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__glass"</span>&gt;
+            &lt;<span class="tg">svg</span> <span class="at">class</span>=<span class="st">"ic"</span> <span class="at">viewBox</span>=<span class="st">"0 0 24 24"</span> <span class="at">aria-hidden</span>=<span class="st">"true"</span>&gt;
+              &lt;<span class="tg">path</span> <span class="at">class</span>=<span class="st">"tt-c"</span> <span class="at">transform</span>=<span class="st">"translate(-.9 -.6)"</span> <span class="at">d</span>=<span class="st">"M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z"</span>/&gt;
+              &lt;<span class="tg">path</span> <span class="at">class</span>=<span class="st">"tt-p"</span> <span class="at">transform</span>=<span class="st">"translate(.9 .6)"</span> <span class="at">d</span>=<span class="st">"M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z"</span>/&gt;
+              &lt;<span class="tg">path</span> <span class="at">class</span>=<span class="st">"shape"</span> <span class="at">d</span>=<span class="st">"M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z"</span>/&gt;
+            &lt;/<span class="tg">svg</span>&gt;
+          &lt;/<span class="tg">span</span>&gt;
+        &lt;/<span class="tg">button</span>&gt;
+        &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__label"</span>&gt;TikTok&lt;/<span class="tg">span</span>&gt;
+      &lt;/<span class="tg">div</span>&gt;
+
+      &lt;<span class="tg">div</span> <span class="at">class</span>=<span class="st">"slot"</span>&gt;
+        &lt;<span class="tg">button</span> <span class="at">class</span>=<span class="st">"tile"</span> <span class="at">type</span>=<span class="st">"button"</span> <span class="at">data-id</span>=<span class="st">"pinterest"</span> <span class="at">data-label</span>=<span class="st">"Pinterest"</span> <span class="at">aria-pressed</span>=<span class="st">"false"</span> <span class="at">aria-label</span>=<span class="st">"Pinterest"</span> <span class="at">style</span>=<span class="st">"--brand:#E60023"</span>&gt;
+          &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__glass"</span>&gt;
+            &lt;<span class="tg">svg</span> <span class="at">class</span>=<span class="st">"ic"</span> <span class="at">viewBox</span>=<span class="st">"0 0 24 24"</span> <span class="at">aria-hidden</span>=<span class="st">"true"</span>&gt;
+              &lt;<span class="tg">circle</span> <span class="at">class</span>=<span class="st">"shape"</span> <span class="at">cx</span>=<span class="st">"12"</span> <span class="at">cy</span>=<span class="st">"12"</span> <span class="at">r</span>=<span class="st">"10"</span>/&gt;
+              &lt;<span class="tg">text</span> <span class="at">class</span>=<span class="st">"mark"</span> <span class="at">x</span>=<span class="st">"12"</span> <span class="at">y</span>=<span class="st">"16.8"</span> <span class="at">text-anchor</span>=<span class="st">"middle"</span> <span class="at">font-family</span>=<span class="st">"Poppins, Arial, sans-serif"</span> <span class="at">font-weight</span>=<span class="st">"700"</span> <span class="at">font-size</span>=<span class="st">"13"</span>&gt;P&lt;/<span class="tg">text</span>&gt;
+            &lt;/<span class="tg">svg</span>&gt;
+          &lt;/<span class="tg">span</span>&gt;
+        &lt;/<span class="tg">button</span>&gt;
+        &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__label"</span>&gt;Pinterest&lt;/<span class="tg">span</span>&gt;
+      &lt;/<span class="tg">div</span>&gt;
+
+      &lt;<span class="tg">div</span> <span class="at">class</span>=<span class="st">"slot"</span>&gt;
+        &lt;<span class="tg">button</span> <span class="at">class</span>=<span class="st">"tile"</span> <span class="at">type</span>=<span class="st">"button"</span> <span class="at">data-id</span>=<span class="st">"linkedin"</span> <span class="at">data-label</span>=<span class="st">"LinkedIn"</span> <span class="at">aria-pressed</span>=<span class="st">"false"</span> <span class="at">aria-label</span>=<span class="st">"LinkedIn"</span> <span class="at">style</span>=<span class="st">"--brand:#0A66C2"</span>&gt;
+          &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__glass"</span>&gt;
+            &lt;<span class="tg">svg</span> <span class="at">class</span>=<span class="st">"ic"</span> <span class="at">viewBox</span>=<span class="st">"0 0 24 24"</span> <span class="at">aria-hidden</span>=<span class="st">"true"</span>&gt;
+              &lt;<span class="tg">rect</span> <span class="at">class</span>=<span class="st">"shape"</span> <span class="at">x</span>=<span class="st">"2"</span> <span class="at">y</span>=<span class="st">"2"</span> <span class="at">width</span>=<span class="st">"20"</span> <span class="at">height</span>=<span class="st">"20"</span> <span class="at">rx</span>=<span class="st">"4"</span>/&gt;
+              &lt;<span class="tg">path</span> <span class="at">class</span>=<span class="st">"mark"</span> <span class="at">d</span>=<span class="st">"M6.2 9.6h2.6v8.2H6.2zM7.5 5.4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM10.6 9.6h2.5v1.2c.4-.7 1.3-1.4 2.7-1.4 2.8 0 3.3 1.8 3.3 4.2v4.2h-2.6v-3.7c0-.9 0-2.1-1.3-2.1s-1.5 1-1.5 2v3.8h-2.6z"</span>/&gt;
+            &lt;/<span class="tg">svg</span>&gt;
+          &lt;/<span class="tg">span</span>&gt;
+        &lt;/<span class="tg">button</span>&gt;
+        &lt;<span class="tg">span</span> <span class="at">class</span>=<span class="st">"tile__label"</span>&gt;LinkedIn&lt;/<span class="tg">span</span>&gt;
+      &lt;/<span class="tg">div</span>&gt;
+
+    &lt;/<span class="tg">div</span>&gt;
+
+    &lt;<span class="tg">p</span> <span class="at">class</span>=<span class="st">"demo__hint"</span> <span class="at">id</span>=<span class="st">"hint"</span> <span class="at">aria-live</span>=<span class="st">"polite"</span>&gt;Hover a tile to see its brand color. Click to select.&lt;/<span class="tg">p</span>&gt;
+  &lt;/<span class="tg">main</span>&gt;
+
+  &lt;<span class="tg">div</span> <span class="at">class</span>=<span class="st">"credit"</span>&gt;Created by @stackanddstyle&lt;/<span class="tg">div</span>&gt;
+  &lt;<span class="tg">script</span> <span class="at">src</span>=<span class="st">"script.js"</span>&gt;&lt;/<span class="tg">script</span>&gt;
+&lt;/<span class="tg">body</span>&gt;
+&lt;/<span class="tg">html</span>&gt;
+</code></pre>
+<pre class="code-pane" data-pane="css" hidden><code><span class="cm">/* =========================================================
+   CHANGE COLORS HERE
+   Edit only the values in this block to restyle the demo.
+   Brand colors for each tile are set on the button (--brand).
+   ========================================================= */</span>
+:root {
+  <span class="cm">/* Reference theme: light blue demo area, navy ink, blue accent */</span>
+  <span class="pr">--bg-top</span>: <span class="nu">#f1f6fe</span>;          <span class="cm">/* demo background top */</span>
+  <span class="pr">--bg-bottom</span>: <span class="nu">#e3ebfb</span>;       <span class="cm">/* demo background bottom */</span>
+  <span class="pr">--glow-violet</span>: <span class="bi">rgba</span>(<span class="nu">37</span>, <span class="nu">99</span>, <span class="nu">235</span>, <span class="nu">0.14</span>);   <span class="cm">/* soft blue glow */</span>
+  <span class="pr">--glow-cyan</span>: <span class="bi">rgba</span>(<span class="nu">14</span>, <span class="nu">165</span>, <span class="nu">233</span>, <span class="nu">0.12</span>);    <span class="cm">/* soft sky glow */</span>
+  <span class="pr">--ink</span>: <span class="nu">#0f1a33</span>;             <span class="cm">/* main text (navy) */</span>
+  <span class="pr">--ink-soft</span>: <span class="nu">#5b6b8f</span>;        <span class="cm">/* hints and captions */</span>
+  <span class="pr">--accent-a</span>: <span class="nu">#2563eb</span>;        <span class="cm">/* accent blue */</span>
+  <span class="pr">--accent-b</span>: <span class="nu">#0ea5e9</span>;        <span class="cm">/* accent sky */</span>
+  <span class="pr">--icon-idle</span>: <span class="nu">#0f1f44</span>;       <span class="cm">/* icon colour before hover (navy) */</span>
+  <span class="pr">--glass</span>: <span class="bi">rgba</span>(<span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">0.72</span>);
+  <span class="pr">--glass-edge</span>: <span class="bi">rgba</span>(<span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">0.95</span>);
+  <span class="pr">--field</span>: <span class="nu">#ffffff</span>;
+  <span class="pr">--field-line</span>: <span class="bi">rgba</span>(<span class="nu">37</span>, <span class="nu">99</span>, <span class="nu">235</span>, <span class="nu">0.25</span>);
+  <span class="pr">--credit-bg</span>: <span class="nu">#0f1f44</span>;       <span class="cm">/* navy credit pill */</span>
+  <span class="pr">--credit-ink</span>: <span class="nu">#ffffff</span>;
+  <span class="cm">/* ========================================================= */</span>
+  <span class="pr">--focus</span>: <span class="nu">0</span> <span class="nu">0</span> <span class="nu">0</span> <span class="nu">3</span><span class="pr">px</span> <span class="bi">rgba</span>(<span class="nu">37</span>, <span class="nu">99</span>, <span class="nu">235</span>, <span class="nu">0.45</span>);
+}
+
+* { <span class="pr">box-sizing</span>: <span class="pr">border-box</span>; }
+<span class="tg">html</span>, <span class="tg">body</span> { <span class="pr">height</span>: <span class="nu">100</span><span class="pr">%</span>; <span class="pr">margin</span>: <span class="nu">0</span>; }
+
+<span class="tg">body</span> {
+  <span class="pr">font-family</span>: <span class="st">'Poppins'</span>, system-ui, -apple-system, <span class="st">'Segoe UI'</span>, <span class="pr">sans-serif</span>;
+  <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--ink</span>);
+  <span class="pr">background</span>: <span class="bi">linear-gradient</span>(<span class="nu">180</span><span class="pr">deg</span>, <span class="fn">var</span>(<span class="pr">--sky-top</span>) <span class="nu">0</span><span class="pr">%</span>, <span class="fn">var</span>(<span class="pr">--sky-bottom</span>) <span class="nu">100</span><span class="pr">%</span>);
+  <span class="pr">overflow</span>: <span class="pr">hidden</span>;
+}
+
+.<span class="tg">visually-hidden</span> {
+  <span class="pr">position</span>: <span class="pr">absolute</span>; <span class="pr">width</span>: <span class="nu">1</span><span class="pr">px</span>; <span class="pr">height</span>: <span class="nu">1</span><span class="pr">px</span>; <span class="pr">overflow</span>: <span class="pr">hidden</span>;
+  <span class="pr">clip</span>: <span class="bi">rect</span>(<span class="nu">0</span> <span class="nu">0</span> <span class="nu">0</span> <span class="nu">0</span>); <span class="pr">white-space</span>: <span class="pr">nowrap</span>;
+}
+
+<span class="cm">/* ---------- Layout ---------- */</span>
+.<span class="tg">demo</span> {
+  <span class="pr">min-height</span>: <span class="nu">100</span><span class="pr">%</span>;
+  <span class="pr">display</span>: <span class="pr">flex</span>; <span class="pr">flex-direction</span>: <span class="pr">column</span>;
+  <span class="pr">align-items</span>: <span class="pr">center</span>; <span class="pr">justify-content</span>: <span class="pr">center</span>;
+  <span class="pr">gap</span>: <span class="nu">22</span><span class="pr">px</span>;
+  <span class="pr">padding</span>: <span class="nu">28</span><span class="pr">px</span> <span class="nu">20</span><span class="pr">px</span> <span class="nu">60</span><span class="pr">px</span>;
+}
+.<span class="tg">demo__title</span> {
+  <span class="pr">margin</span>: <span class="nu">0</span>; <span class="pr">font-size</span>: <span class="nu">32</span><span class="pr">px</span>; <span class="pr">font-weight</span>: <span class="nu">700</span>;
+  <span class="pr">font-family</span>: <span class="st">'Fredoka'</span>, <span class="st">'Poppins'</span>, system-ui, <span class="pr">sans-serif</span>;
+  <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--ink</span>);
+}
+
+.<span class="tg">demo__controls</span> { <span class="pr">display</span>: <span class="pr">flex</span>; <span class="pr">gap</span>: <span class="nu">10</span><span class="pr">px</span>; <span class="pr">align-items</span>: <span class="pr">center</span>; <span class="pr">flex-wrap</span>: <span class="pr">wrap</span>; <span class="pr">justify-content</span>: <span class="pr">center</span>; }
+
+.<span class="tg">demo__search</span>, .<span class="tg">demo__btn</span> {
+  <span class="pr">padding</span>: <span class="nu">10</span><span class="pr">px</span> <span class="nu">14</span><span class="pr">px</span>;
+  <span class="pr">border-radius</span>: <span class="nu">12</span><span class="pr">px</span>;
+  <span class="pr">border</span>: <span class="nu">1</span><span class="pr">px</span> <span class="pr">solid</span> <span class="fn">var</span>(<span class="pr">--field-line</span>);
+  <span class="pr">background</span>: <span class="fn">var</span>(<span class="pr">--field</span>);
+  <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--ink</span>);
+  <span class="pr">font</span>: <span class="pr">inherit</span>; <span class="pr">font-size</span>: <span class="nu">15</span><span class="pr">px</span>;
+  backdrop-filter: <span class="bi">blur</span>(<span class="nu">8</span><span class="pr">px</span>);
+}
+.<span class="tg">demo__search</span> { <span class="pr">width</span>: <span class="nu">220</span><span class="pr">px</span>; }
+.<span class="tg">demo__search</span>::placeholder { <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--ink-soft</span>); }
+.<span class="tg">demo__btn</span> { <span class="pr">cursor</span>: <span class="pr">pointer</span>; }
+.<span class="tg">demo__btn</span>[<span class="tg">aria-pressed</span>=<span class="st">"false"</span>] { <span class="pr">opacity</span>: <span class="nu">0.6</span>; }
+.<span class="tg">demo__btn</span> { <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--ink</span>); }
+
+.<span class="tg">demo__search</span>:focus-visible, .<span class="tg">demo__btn</span>:focus-visible, .<span class="tg">tile</span>:focus-visible { <span class="pr">outline</span>: <span class="pr">none</span>; <span class="pr">box-shadow</span>: <span class="fn">var</span>(<span class="pr">--focus</span>); <span class="pr">border-radius</span>: <span class="nu">30</span><span class="pr">px</span>; }
+
+.<span class="tg">demo__hint</span> { <span class="pr">margin</span>: <span class="nu">0</span>; <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--ink-soft</span>); <span class="pr">font-size</span>: <span class="nu">16</span><span class="pr">px</span>; <span class="pr">min-height</span>: <span class="nu">1.4</span><span class="pr">em</span>; }
+
+<span class="cm">/* ---------- Glass social tiles ---------- */</span>
+.<span class="tg">stage</span> {
+  <span class="pr">display</span>: <span class="pr">flex</span>; <span class="pr">flex-wrap</span>: <span class="pr">wrap</span>; <span class="pr">justify-content</span>: <span class="pr">center</span>;
+  <span class="pr">gap</span>: <span class="nu">34</span><span class="pr">px</span> <span class="nu">36</span><span class="pr">px</span>;
+  <span class="pr">perspective</span>: <span class="nu">800</span><span class="pr">px</span>;
+  <span class="pr">padding</span>: <span class="nu">20</span><span class="pr">px</span>;
+  <span class="pr">max-width</span>: <span class="nu">1000</span><span class="pr">px</span>;
+}
+
+<span class="cm">/* Each slot keeps the tile and its label together.
+   The JS script sets --lift (0..1) and --hide (0..1) on the slot. */</span>
+.<span class="tg">slot</span> {
+  <span class="pr">--lift</span>: <span class="nu">0</span>;
+  <span class="pr">--hide</span>: <span class="nu">0</span>;
+  <span class="pr">display</span>: <span class="pr">flex</span>; <span class="pr">flex-direction</span>: <span class="pr">column</span>; <span class="pr">align-items</span>: <span class="pr">center</span>; <span class="pr">gap</span>: <span class="nu">12</span><span class="pr">px</span>;
+  <span class="pr">opacity</span>: <span class="bi">calc</span>(<span class="nu">1</span> - <span class="fn">var</span>(<span class="pr">--hide</span>));
+  <span class="pr">transform</span>: <span class="bi">scale</span>(<span class="bi">calc</span>(<span class="nu">1</span> - <span class="fn">var</span>(<span class="pr">--hide</span>) * <span class="nu">0.5</span>));
+}
+
+.<span class="tg">tile</span> {
+  <span class="pr">--rx</span>: <span class="nu">0</span><span class="pr">deg</span>;
+  <span class="pr">--ry</span>: <span class="nu">0</span><span class="pr">deg</span>;
+  <span class="pr">position</span>: <span class="pr">relative</span>;
+  <span class="pr">width</span>: <span class="nu">150</span><span class="pr">px</span>; <span class="pr">height</span>: <span class="nu">150</span><span class="pr">px</span>;
+  <span class="pr">border</span>: <span class="nu">0</span>; <span class="pr">padding</span>: <span class="nu">0</span>; <span class="pr">background</span>: <span class="pr">none</span>; <span class="pr">cursor</span>: <span class="pr">pointer</span>;
+  <span class="pr">transform</span>:
+    <span class="bi">perspective</span>(<span class="nu">700</span><span class="pr">px</span>)
+    <span class="bi">rotateX</span>(<span class="fn">var</span>(<span class="pr">--rx</span>)) <span class="bi">rotateY</span>(<span class="fn">var</span>(<span class="pr">--ry</span>))
+    <span class="bi">translateY</span>(<span class="bi">calc</span>(<span class="fn">var</span>(<span class="pr">--lift</span>) * <span class="nu">-12</span><span class="pr">px</span>));
+  <span class="pr">will-change</span>: <span class="pr">transform</span>;
+}
+
+<span class="cm">/* The glass square */</span>
+.<span class="tg">tile__glass</span> {
+  <span class="pr">position</span>: <span class="pr">absolute</span>; <span class="pr">inset</span>: <span class="nu">0</span>;
+  <span class="pr">display</span>: <span class="pr">grid</span>; <span class="pr">place-items</span>: <span class="pr">center</span>;
+  <span class="pr">border-radius</span>: <span class="nu">32</span><span class="pr">px</span>;
+  <span class="pr">background</span>: <span class="fn">var</span>(<span class="pr">--glass</span>);
+  <span class="pr">border</span>: <span class="nu">1.5</span><span class="pr">px</span> <span class="pr">solid</span> <span class="fn">var</span>(<span class="pr">--glass-edge</span>);
+  backdrop-filter: <span class="bi">blur</span>(<span class="nu">14</span><span class="pr">px</span>) <span class="bi">saturate</span>(<span class="nu">160</span><span class="pr">%</span>);
+  <span class="pr">-webkit-</span>backdrop-filter: <span class="bi">blur</span>(<span class="nu">14</span><span class="pr">px</span>) <span class="bi">saturate</span>(<span class="nu">160</span><span class="pr">%</span>);
+  <span class="pr">box-shadow</span>:
+    <span class="pr">inset</span> <span class="nu">0</span> <span class="nu">1</span><span class="pr">px</span> <span class="nu">0</span> <span class="bi">rgba</span>(<span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">0.9</span>),
+    <span class="nu">0</span> <span class="nu">16</span><span class="pr">px</span> <span class="nu">34</span><span class="pr">px</span> <span class="bi">rgba</span>(<span class="nu">37</span>, <span class="nu">99</span>, <span class="nu">235</span>, <span class="nu">0.16</span>);
+}
+
+<span class="cm">/* Glow in the brand colour when lifted or selected */</span>
+.<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>] .<span class="tg">tile__glass</span>,
+.<span class="tg">tile</span>:hover .<span class="tg">tile__glass</span> {
+  <span class="pr">box-shadow</span>:
+    <span class="pr">inset</span> <span class="nu">0</span> <span class="nu">1</span><span class="pr">px</span> <span class="nu">0</span> <span class="bi">rgba</span>(<span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">0.95</span>),
+    <span class="nu">0</span> <span class="nu">18</span><span class="pr">px</span> <span class="nu">40</span><span class="pr">px</span> <span class="fn">color-mix</span>(in srgb, <span class="fn">var</span>(<span class="pr">--brand</span>) <span class="nu">38</span><span class="pr">%</span>, <span class="pr">transparent</span>),
+    <span class="nu">0</span> <span class="nu">0</span> <span class="nu">0</span> <span class="nu">1</span><span class="pr">px</span> <span class="fn">color-mix</span>(in srgb, <span class="fn">var</span>(<span class="pr">--brand</span>) <span class="nu">25</span><span class="pr">%</span>, <span class="pr">transparent</span>);
+}
+
+.<span class="tg">ic</span> { <span class="pr">width</span>: <span class="nu">68</span><span class="pr">px</span>; <span class="pr">height</span>: <span class="nu">68</span><span class="pr">px</span>; <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--icon-idle</span>); <span class="pr">transition</span>: <span class="pr">none</span>; }
+
+<span class="cm">/* Idle: all icon parts show in slate. Mark (letter) is white.
+   On hover or select the shape takes the brand's original colour. */</span>
+.<span class="tg">ic</span> .<span class="tg">shape</span> { <span class="pr">fill</span>: <span class="pr">currentColor</span>; }
+.<span class="tg">ic</span> .<span class="tg">mark</span>  { <span class="pr">fill</span>: <span class="nu">#ffffff</span>; }
+.<span class="tg">ic</span> .<span class="tg">ig</span>    { <span class="pr">fill</span>: <span class="pr">none</span>; <span class="pr">stroke</span>: <span class="pr">currentColor</span>; }
+.<span class="tg">ic</span> .<span class="tg">igdot</span> { <span class="pr">fill</span>: <span class="pr">currentColor</span>; }
+.<span class="tg">ic</span> .<span class="tg">tt-c</span>, .<span class="tg">ic</span> .<span class="tg">tt-p</span> { <span class="pr">fill</span>: <span class="nu">#25F4EE</span>; <span class="pr">opacity</span>: <span class="nu">0</span>; }
+.<span class="tg">ic</span> .<span class="tg">tt-p</span>  { <span class="pr">fill</span>: <span class="nu">#FE2C55</span>; }
+
+.<span class="tg">tile</span>:hover .<span class="tg">ic</span>, .<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>] .<span class="tg">ic</span> { <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--brand</span>); }
+.<span class="tg">tile</span>:hover .<span class="tg">ic</span> .<span class="tg">ig</span>, .<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>] .<span class="tg">ic</span> .<span class="tg">ig</span> { <span class="pr">stroke</span>: <span class="bi">url</span>(<span class="st">#igGrad</span>); }
+.<span class="tg">tile</span>:hover .<span class="tg">ic</span> .<span class="tg">igdot</span>, .<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>] .<span class="tg">ic</span> .<span class="tg">igdot</span> { <span class="pr">fill</span>: <span class="bi">url</span>(<span class="st">#igGrad</span>); }
+.<span class="tg">tile</span>:hover .<span class="tg">ic</span> .<span class="tg">tt-c</span>, .<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>] .<span class="tg">ic</span> .<span class="tg">tt-c</span>,
+.<span class="tg">tile</span>:hover .<span class="tg">ic</span> .<span class="tg">tt-p</span>, .<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>] .<span class="tg">ic</span> .<span class="tg">tt-p</span> { <span class="pr">opacity</span>: <span class="nu">1</span>; }
+.<span class="tg">tile</span>:hover .<span class="tg">ic</span> .<span class="tg">mark</span>, .<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>] .<span class="tg">ic</span> .<span class="tg">mark</span> { <span class="pr">fill</span>: <span class="nu">#ffffff</span>; }
+
+.<span class="tg">tile__label</span> {
+  <span class="pr">font-size</span>: <span class="nu">15</span><span class="pr">px</span>; <span class="pr">font-weight</span>: <span class="nu">500</span>;
+  <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--ink</span>);
+  <span class="pr">pointer-events</span>: <span class="pr">none</span>;
+}
+.<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>] ~ .<span class="tg">tile__label</span>, .<span class="tg">slot</span>:has(.<span class="tg">tile</span>[<span class="tg">aria-pressed</span>=<span class="st">"true"</span>]) .<span class="tg">tile__label</span> { <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--brand</span>); <span class="pr">font-weight</span>: <span class="nu">600</span>; }
+
+<span class="cm">/* ---------- Credit pill ---------- */</span>
+.<span class="tg">credit</span> {
+  <span class="pr">position</span>: <span class="pr">fixed</span>; <span class="pr">right</span>: <span class="nu">18</span><span class="pr">px</span>; <span class="pr">bottom</span>: <span class="nu">16</span><span class="pr">px</span>;
+  <span class="pr">padding</span>: <span class="nu">8</span><span class="pr">px</span> <span class="nu">14</span><span class="pr">px</span>; <span class="pr">border-radius</span>: <span class="nu">999</span><span class="pr">px</span>;
+  <span class="pr">background</span>: <span class="fn">var</span>(<span class="pr">--credit-bg</span>);
+  <span class="pr">border</span>: <span class="nu">1</span><span class="pr">px</span> <span class="pr">solid</span> <span class="bi">rgba</span>(<span class="nu">15</span>, <span class="nu">31</span>, <span class="nu">68</span>, <span class="nu">0.25</span>);
+  <span class="pr">color</span>: <span class="fn">var</span>(<span class="pr">--credit-ink</span>);
+  <span class="pr">font-size</span>: <span class="nu">13</span><span class="pr">px</span>; <span class="pr">font-weight</span>: <span class="nu">500</span>;
+  backdrop-filter: <span class="bi">blur</span>(<span class="nu">6</span><span class="pr">px</span>);
+}
+
+<span class="cm">/* ---------- Reduced motion: no motion, changes are instant ---------- */</span>
+@<span class="pr">media</span> (<span class="tg">prefers-reduced-motion</span>: <span class="tg">reduce</span>) {
+  .<span class="tg">tile</span> { <span class="pr">will-change</span>: <span class="pr">auto</span>; }
+}
+
+<span class="cm">/* ---------- Narrow screens ---------- */</span>
+@<span class="pr">media</span> (<span class="tg">max-width</span>: <span class="tg">560px</span>) {
+  .<span class="tg">tile</span> { <span class="pr">width</span>: <span class="nu">110</span><span class="pr">px</span>; <span class="pr">height</span>: <span class="nu">110</span><span class="pr">px</span>; }
+  .<span class="tg">ic</span> { <span class="pr">width</span>: <span class="nu">50</span><span class="pr">px</span>; <span class="pr">height</span>: <span class="nu">50</span><span class="pr">px</span>; }
+  .<span class="tg">stage</span> { <span class="pr">gap</span>: <span class="nu">22</span><span class="pr">px</span> <span class="nu">18</span><span class="pr">px</span>; }
+  .<span class="tg">demo__search</span> { <span class="pr">width</span>: <span class="nu">160</span><span class="pr">px</span>; }
+}
+
+<span class="cm">/* ---------- Big, readable demo on wide screens (reels and desktop) ---------- */</span>
+@<span class="pr">media</span> (<span class="tg">min-width</span>: <span class="tg">900px</span>) {
+  .<span class="tg">demo</span> { <span class="pr">gap</span>: <span class="nu">22</span><span class="pr">px</span>; <span class="pr">padding</span>: <span class="nu">44</span><span class="pr">px</span> <span class="nu">24</span><span class="pr">px</span> <span class="nu">120</span><span class="pr">px</span>; <span class="pr">justify-content</span>: <span class="pr">flex-start</span>; }
+  .<span class="tg">demo__title</span> { <span class="pr">font-size</span>: <span class="nu">54</span><span class="pr">px</span>; }
+  .<span class="tg">demo__controls</span> { <span class="pr">gap</span>: <span class="nu">14</span><span class="pr">px</span>; }
+  .<span class="tg">demo__search</span> { <span class="pr">width</span>: <span class="nu">360</span><span class="pr">px</span>; <span class="pr">font-size</span>: <span class="nu">25</span><span class="pr">px</span>; <span class="pr">padding</span>: <span class="nu">14</span><span class="pr">px</span> <span class="nu">20</span><span class="pr">px</span>; <span class="pr">border-radius</span>: <span class="nu">18</span><span class="pr">px</span>; }
+  .<span class="tg">demo__btn</span> { <span class="pr">font-size</span>: <span class="nu">25</span><span class="pr">px</span>; <span class="pr">padding</span>: <span class="nu">14</span><span class="pr">px</span> <span class="nu">22</span><span class="pr">px</span>; <span class="pr">border-radius</span>: <span class="nu">18</span><span class="pr">px</span>; }
+  .<span class="tg">demo__hint</span> { <span class="pr">font-size</span>: <span class="nu">26</span><span class="pr">px</span>; }
+  .<span class="tg">stage</span> { <span class="pr">gap</span>: <span class="nu">30</span><span class="pr">px</span> <span class="nu">36</span><span class="pr">px</span>; <span class="pr">padding</span>: <span class="nu">6</span><span class="pr">px</span>; <span class="pr">max-width</span>: <span class="nu">780</span><span class="pr">px</span>; }
+  .<span class="tg">slot</span> { <span class="pr">gap</span>: <span class="nu">14</span><span class="pr">px</span>; }
+  .<span class="tg">tile</span> { <span class="pr">width</span>: <span class="nu">210</span><span class="pr">px</span>; <span class="pr">height</span>: <span class="nu">210</span><span class="pr">px</span>; }
+  .<span class="tg">tile__glass</span> { <span class="pr">border-radius</span>: <span class="nu">46</span><span class="pr">px</span>; }
+  .<span class="tg">ic</span> { <span class="pr">width</span>: <span class="nu">102</span><span class="pr">px</span>; <span class="pr">height</span>: <span class="nu">102</span><span class="pr">px</span>; }
+  .<span class="tg">tile__label</span> { <span class="pr">font-size</span>: <span class="nu">29</span><span class="pr">px</span>; }
+  .<span class="tg">credit</span> { <span class="pr">font-size</span>: <span class="nu">22</span><span class="pr">px</span>; <span class="pr">padding</span>: <span class="nu">12</span><span class="pr">px</span> <span class="nu">20</span><span class="pr">px</span>; }
+}
+</code></pre>
+<pre class="code-pane" data-pane="js" hidden><code><span class="cm">/* =========================================================
+   3D Social Tiles - behaviour
+   - Hover: the tile tilts toward the cursor and shows its brand colour
+   - Click: selects the tile (saved between visits); a short sound plays
+   - Search: typing hides tiles that do not match
+   - Keyboard: Tab / arrows to move, Enter or Space to select, R to reset
+   - Motion is eased once per animation frame; reduced-motion users get instant changes
+   ========================================================= */</span>
+
+(<span class="kw">function</span> () {
+  <span class="st">'use strict'</span>;
+
+  <span class="kw">const</span> STORAGE_KEY = <span class="st">'social-tiles:selected'</span>;
+  <span class="kw">const</span> SOUND_KEY = <span class="st">'social-tiles:sound'</span>;
+  <span class="kw">const</span> reduceMotion = <span class="bi">window</span>.<span class="fn">matchMedia</span>(<span class="st">'(prefers-reduced-motion: reduce)'</span>).matches;
+  <span class="kw">const</span> EASE = reduceMotion ? <span class="nu">1</span> : <span class="nu">0.18</span>;   <span class="cm">// 1 = jump straight to the target</span>
+
+  <span class="kw">const</span> stage = <span class="bi">document</span>.<span class="fn">getElementById</span>(<span class="st">'stage'</span>);
+  <span class="kw">const</span> search = <span class="bi">document</span>.<span class="fn">getElementById</span>(<span class="st">'search'</span>);
+  <span class="kw">const</span> resetBtn = <span class="bi">document</span>.<span class="fn">getElementById</span>(<span class="st">'reset'</span>);
+  <span class="kw">const</span> soundBtn = <span class="bi">document</span>.<span class="fn">getElementById</span>(<span class="st">'sound'</span>);
+  <span class="kw">const</span> hint = <span class="bi">document</span>.<span class="fn">getElementById</span>(<span class="st">'hint'</span>);
+  <span class="kw">const</span> tiles = <span class="bi">Array</span>.<span class="kw">from</span>(stage.<span class="fn">querySelectorAll</span>(<span class="st">'.tile'</span>));
+
+  <span class="cm">// Per-tile animation state: current values move toward the targets each frame</span>
+  <span class="kw">const</span> state = new <span class="bi">Map</span>();
+  tiles.<span class="fn">forEach</span>((tile) =&gt; {
+    state.<span class="fn">set</span>(tile, {
+      lift: <span class="nu">0</span>, hide: <span class="nu">0</span>, hideTarget: <span class="nu">0</span>,
+      rx: <span class="nu">0</span>, ry: <span class="nu">0</span>, tx: <span class="nu">0</span>, ty: <span class="nu">0</span>,     <span class="cm">// tilt now and target</span>
+      hover: <span class="kw">false</span>, selected: <span class="kw">false</span>,
+    });
+  });
+
+  <span class="cm">/* ---------- Saved state (storage can fail, so guard it) ---------- */</span>
+  <span class="kw">function</span> <span class="fn">loadSaved</span>() {
+    <span class="kw">try</span> {
+      <span class="kw">const</span> saved = <span class="bi">JSON</span>.<span class="fn">parse</span>(localStorage.<span class="fn">getItem</span>(STORAGE_KEY) || <span class="st">'[]'</span>);
+      <span class="kw">return</span> <span class="bi">Array</span>.<span class="fn">isArray</span>(saved) ? saved : [];
+    } <span class="kw">catch</span> (err) { <span class="kw">return</span> []; }
+  }
+  <span class="kw">function</span> <span class="fn">saveSelected</span>() {
+    <span class="kw">const</span> ids = tiles.<span class="fn">filter</span>((t) =&gt; state.<span class="fn">get</span>(t).selected).<span class="fn">map</span>((t) =&gt; t.dataset.id);
+    <span class="kw">try</span> { localStorage.<span class="fn">setItem</span>(STORAGE_KEY, <span class="bi">JSON</span>.<span class="fn">stringify</span>(ids)); } <span class="kw">catch</span> (err) { <span class="cm">/* forget silently */</span> }
+  }
+  <span class="kw">function</span> <span class="fn">loadSoundPref</span>() {
+    <span class="kw">try</span> { <span class="kw">return</span> localStorage.<span class="fn">getItem</span>(SOUND_KEY) !== <span class="st">'off'</span>; } <span class="kw">catch</span> (err) { <span class="kw">return</span> <span class="kw">true</span>; }
+  }
+  <span class="kw">function</span> <span class="fn">saveSoundPref</span>(on) {
+    <span class="kw">try</span> { localStorage.<span class="fn">setItem</span>(SOUND_KEY, on ? <span class="st">'on'</span> : <span class="st">'off'</span>); } <span class="kw">catch</span> (err) { <span class="cm">/* ignore */</span> }
+  }
+
+  <span class="cm">/* ---------- Sound: short synthesized tones (no audio files needed) ---------- */</span>
+  <span class="kw">let</span> audioCtx = <span class="kw">null</span>;
+  <span class="kw">let</span> soundOn = <span class="fn">loadSoundPref</span>();
+
+  <span class="kw">function</span> <span class="fn">ensureAudio</span>() {
+    <span class="kw">if</span> (!audioCtx) {
+      <span class="kw">const</span> AC = <span class="bi">window</span>.AudioContext || <span class="bi">window</span>.webkitAudioContext;
+      <span class="kw">if</span> (AC) audioCtx = new <span class="fn">AC</span>();
+    }
+    <span class="kw">if</span> (audioCtx &amp;&amp; audioCtx.state === <span class="st">'suspended'</span>) audioCtx.<span class="fn">resume</span>();
+    <span class="kw">return</span> audioCtx;
+  }
+
+  <span class="cm">// A tone that glides from freqA to freqB and fades out</span>
+  <span class="kw">function</span> <span class="fn">tone</span>(freqA, freqB, dur, vol) {
+    <span class="kw">if</span> (!soundOn) <span class="kw">return</span>;
+    <span class="kw">const</span> ctx = <span class="fn">ensureAudio</span>();
+    <span class="kw">if</span> (!ctx) <span class="kw">return</span>;
+    <span class="kw">const</span> osc = ctx.<span class="fn">createOscillator</span>();
+    <span class="kw">const</span> gain = ctx.<span class="fn">createGain</span>();
+    <span class="kw">const</span> now = ctx.currentTime;
+    osc.type = <span class="st">'sine'</span>;
+    osc.frequency.<span class="fn">setValueAtTime</span>(freqA, now);
+    osc.frequency.<span class="fn">exponentialRampToValueAtTime</span>(freqB, now + dur);
+    gain.gain.<span class="fn">setValueAtTime</span>(<span class="nu">0.0001</span>, now);
+    gain.gain.<span class="fn">exponentialRampToValueAtTime</span>(vol, now + <span class="nu">0.006</span>);
+    gain.gain.<span class="fn">exponentialRampToValueAtTime</span>(<span class="nu">0.0001</span>, now + dur);
+    osc.<span class="fn">connect</span>(gain).<span class="fn">connect</span>(ctx.destination);
+    osc.<span class="fn">start</span>(now);
+    osc.<span class="fn">stop</span>(now + dur + <span class="nu">0.02</span>);
+  }
+  <span class="kw">const</span> playSelect = () =&gt; <span class="fn">tone</span>(<span class="nu">520</span>, <span class="nu">880</span>, <span class="nu">0.12</span>, <span class="nu">0.18</span>);
+  <span class="kw">const</span> playReset = () =&gt; <span class="fn">tone</span>(<span class="nu">880</span>, <span class="nu">440</span>, <span class="nu">0.22</span>, <span class="nu">0.14</span>);
+
+  <span class="kw">function</span> <span class="fn">setSoundButton</span>() {
+    soundBtn.<span class="fn">setAttribute</span>(<span class="st">'aria-pressed'</span>, soundOn ? <span class="st">'true'</span> : <span class="st">'false'</span>);
+    soundBtn.textContent = <span class="st">'Sound: '</span> + (soundOn ? <span class="st">'On'</span> : <span class="st">'Off'</span>);
+  }
+
+  <span class="cm">/* ---------- Helpers ---------- */</span>
+  <span class="kw">function</span> <span class="fn">setPressed</span>(tile, on) { tile.<span class="fn">setAttribute</span>(<span class="st">'aria-pressed'</span>, on ? <span class="st">'true'</span> : <span class="st">'false'</span>); }
+  <span class="kw">function</span> <span class="fn">selectedCount</span>() { <span class="kw">return</span> tiles.<span class="fn">filter</span>((t) =&gt; state.<span class="fn">get</span>(t).selected).length; }
+  <span class="kw">function</span> <span class="fn">updateHint</span>(message) {
+    hint.textContent = message || (<span class="fn">selectedCount</span>() + <span class="st">' selected. Press R to reset.'</span>);
+  }
+
+  <span class="cm">/* ---------- Actions ---------- */</span>
+  <span class="kw">function</span> <span class="fn">toggleTile</span>(tile) {
+    <span class="kw">const</span> s = state.<span class="fn">get</span>(tile);
+    s.selected = !s.selected;
+    <span class="fn">setPressed</span>(tile, s.selected);
+    <span class="fn">saveSelected</span>();
+    <span class="fn">playSelect</span>();
+    <span class="fn">updateHint</span>(tile.dataset.label + (s.selected ? <span class="st">' selected. '</span> : <span class="st">' cleared. '</span>) + <span class="fn">selectedCount</span>() + <span class="st">' selected.'</span>);
+  }
+
+  <span class="kw">function</span> <span class="fn">applySearch</span>() {
+    <span class="kw">const</span> q = search.value.<span class="fn">trim</span>().<span class="fn">toLowerCase</span>();
+    tiles.<span class="fn">forEach</span>((t) =&gt; {
+      <span class="kw">const</span> match = q === <span class="st">''</span> || t.dataset.label.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(q);
+      state.<span class="fn">get</span>(t).hideTarget = match ? <span class="nu">0</span> : <span class="nu">1</span>;
+      t.dataset.match = match ? <span class="st">'yes'</span> : <span class="st">'no'</span>;
+    });
+    <span class="kw">const</span> visible = tiles.<span class="fn">filter</span>((t) =&gt; t.dataset.match === <span class="st">'yes'</span>).length;
+    <span class="fn">updateHint</span>(q ? visible + <span class="st">' tile(s) match "'</span> + search.value.<span class="fn">trim</span>() + <span class="st">'".'</span> : <span class="kw">undefined</span>);
+  }
+
+  <span class="kw">function</span> <span class="fn">resetAll</span>() {
+    search.value = <span class="st">''</span>;
+    tiles.<span class="fn">forEach</span>((t) =&gt; { state.<span class="fn">get</span>(t).selected = <span class="kw">false</span>; <span class="fn">setPressed</span>(t, <span class="kw">false</span>); });
+    <span class="fn">saveSelected</span>();
+    <span class="fn">applySearch</span>();
+    <span class="fn">playReset</span>();
+    <span class="fn">updateHint</span>(<span class="st">'Reset. Hover a tile to see its brand colour.'</span>);
+  }
+
+  <span class="cm">/* ---------- Pointer tilt: the tile leans toward the cursor ---------- */</span>
+  <span class="kw">function</span> <span class="fn">tiltFromPointer</span>(tile, e) {
+    <span class="kw">const</span> r = tile.<span class="fn">getBoundingClientRect</span>();
+    <span class="kw">const</span> px = (e.clientX - r.left) / r.width - <span class="nu">0.5</span>;    <span class="cm">// -0.5..0.5</span>
+    <span class="kw">const</span> py = (e.clientY - r.top) / r.height - <span class="nu">0.5</span>;
+    <span class="kw">const</span> s = state.<span class="fn">get</span>(tile);
+    s.tx = py * -<span class="nu">16</span>;    <span class="cm">// rotateX (degrees)</span>
+    s.ty = px * <span class="nu">16</span>;     <span class="cm">// rotateY (degrees)</span>
+  }
+
+  <span class="cm">/* ---------- Events ---------- */</span>
+  tiles.<span class="fn">forEach</span>((tile) =&gt; {
+    tile.<span class="fn">addEventListener</span>(<span class="st">'click'</span>, () =&gt; { <span class="fn">ensureAudio</span>(); <span class="fn">toggleTile</span>(tile); });
+    tile.<span class="fn">addEventListener</span>(<span class="st">'pointerenter'</span>, (e) =&gt; { state.<span class="fn">get</span>(tile).hover = <span class="kw">true</span>; <span class="fn">tiltFromPointer</span>(tile, e); });
+    tile.<span class="fn">addEventListener</span>(<span class="st">'pointermove'</span>, (e) =&gt; <span class="fn">tiltFromPointer</span>(tile, e));
+    tile.<span class="fn">addEventListener</span>(<span class="st">'pointerleave'</span>, () =&gt; { <span class="kw">const</span> s = state.<span class="fn">get</span>(tile); s.hover = <span class="kw">false</span>; s.tx = <span class="nu">0</span>; s.ty = <span class="nu">0</span>; });
+    tile.<span class="fn">addEventListener</span>(<span class="st">'focus'</span>, () =&gt; { state.<span class="fn">get</span>(tile).hover = <span class="kw">true</span>; });
+    tile.<span class="fn">addEventListener</span>(<span class="st">'blur'</span>, () =&gt; { state.<span class="fn">get</span>(tile).hover = <span class="kw">false</span>; });
+  });
+
+  stage.<span class="fn">addEventListener</span>(<span class="st">'keydown'</span>, (e) =&gt; {
+    <span class="kw">const</span> idx = tiles.<span class="fn">indexOf</span>(<span class="bi">document</span>.activeElement);
+    <span class="kw">if</span> (idx &lt; <span class="nu">0</span>) <span class="kw">return</span>;
+    <span class="kw">if</span> (e.key === <span class="st">'ArrowRight'</span> || e.key === <span class="st">'ArrowLeft'</span>) {
+      e.<span class="fn">preventDefault</span>();
+      <span class="kw">const</span> next = (idx + (e.key === <span class="st">'ArrowRight'</span> ? <span class="nu">1</span> : tiles.length - <span class="nu">1</span>)) % tiles.length;
+      tiles[next].<span class="fn">focus</span>();
+    }
+  });
+
+  search.<span class="fn">addEventListener</span>(<span class="st">'input'</span>, applySearch);
+  resetBtn.<span class="fn">addEventListener</span>(<span class="st">'click'</span>, () =&gt; { <span class="fn">ensureAudio</span>(); <span class="fn">resetAll</span>(); });
+  soundBtn.<span class="fn">addEventListener</span>(<span class="st">'click'</span>, () =&gt; {
+    soundOn = !soundOn;
+    <span class="fn">saveSoundPref</span>(soundOn);
+    <span class="fn">setSoundButton</span>();
+    <span class="kw">if</span> (soundOn) { <span class="fn">ensureAudio</span>(); <span class="fn">playSelect</span>(); }
+  });
+
+  <span class="bi">document</span>.<span class="fn">addEventListener</span>(<span class="st">'keydown'</span>, (e) =&gt; {
+    <span class="kw">const</span> typing = e.target instanceof HTMLInputElement;
+    <span class="kw">if</span> (!typing &amp;&amp; (e.key === <span class="st">'r'</span> || e.key === <span class="st">'R'</span>)) <span class="fn">resetAll</span>();
+  });
+
+  <span class="cm">/* ---------- Restore saved selection ---------- */</span>
+  <span class="kw">const</span> saved = <span class="fn">loadSaved</span>();
+  tiles.<span class="fn">forEach</span>((t) =&gt; {
+    <span class="kw">const</span> on = saved.<span class="fn">includes</span>(t.dataset.id);
+    state.<span class="fn">get</span>(t).selected = on;
+    <span class="fn">setPressed</span>(t, on);
+  });
+  <span class="fn">setSoundButton</span>();
+  <span class="fn">updateHint</span>();
+
+  <span class="cm">/* ---------- Animation loop: ease every value toward its target once per frame ---------- */</span>
+  <span class="kw">function</span> <span class="fn">frame</span>() {
+    tiles.<span class="fn">forEach</span>((tile) =&gt; {
+      <span class="kw">const</span> s = state.<span class="fn">get</span>(tile);
+      <span class="kw">const</span> liftTarget = s.selected ? <span class="nu">1</span> : s.hover ? <span class="nu">0.6</span> : <span class="nu">0</span>;
+
+      s.lift += (liftTarget - s.lift) * EASE;
+      s.hide += (s.hideTarget - s.hide) * EASE;
+      s.rx += (s.tx - s.rx) * EASE;
+      s.ry += (s.ty - s.ry) * EASE;
+
+      <span class="kw">if</span> (<span class="bi">Math</span>.<span class="fn">abs</span>(liftTarget - s.lift) &lt; <span class="nu">0.001</span>) s.lift = liftTarget;
+      <span class="kw">if</span> (<span class="bi">Math</span>.<span class="fn">abs</span>(s.hideTarget - s.hide) &lt; <span class="nu">0.001</span>) s.hide = s.hideTarget;
+
+      tile.style.<span class="fn">setProperty</span>(<span class="st">'--rx'</span>, s.rx.<span class="fn">toFixed</span>(<span class="nu">3</span>) + <span class="st">'deg'</span>);
+      tile.style.<span class="fn">setProperty</span>(<span class="st">'--ry'</span>, s.ry.<span class="fn">toFixed</span>(<span class="nu">3</span>) + <span class="st">'deg'</span>);
+      <span class="kw">const</span> slot = tile.parentElement;   <span class="cm">// lift and hide live on the slot</span>
+      slot.style.<span class="fn">setProperty</span>(<span class="st">'--lift'</span>, s.lift.<span class="fn">toFixed</span>(<span class="nu">4</span>));
+      slot.style.<span class="fn">setProperty</span>(<span class="st">'--hide'</span>, s.hide.<span class="fn">toFixed</span>(<span class="nu">4</span>));
+    });
+    <span class="fn">requestAnimationFrame</span>(frame);
+  }
+  <span class="fn">requestAnimationFrame</span>(frame);
+})();
+</code></pre>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="intro" class="overlay" aria-hidden="true">
+  <div class="t">3D Social Tiles</div>
+  <div class="s">HTML · CSS · JS</div>
+  <div class="h">@stackanddstyle</div>
+</div>
+<div id="ending" class="overlay" aria-hidden="true">
+  <div class="a">Created by</div>
+  <div class="b">@stackanddstyle</div>
+  <div class="c">Follow for more UI</div>
+</div>
+
+<svg id="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 2 L3 19 L8 14.6 L11 21 L13.6 19.9 L10.6 13.5 L17.2 13.5 Z" fill="#fff" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/></svg>
+
+<textarea hidden id="raw-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+  &lt;title&gt;3D Social Tiles&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;!-- Shared gradient used by the Instagram logo when it is active --&gt;
+  &lt;svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"&gt;
+    &lt;defs&gt;
+      &lt;linearGradient id="igGrad" x1="0" y1="1" x2="1" y2="0"&gt;
+        &lt;stop offset="0" stop-color="#FEDA75"/&gt;
+        &lt;stop offset=".35" stop-color="#FA7E1E"/&gt;
+        &lt;stop offset=".65" stop-color="#D62976"/&gt;
+        &lt;stop offset="1" stop-color="#4F5BD5"/&gt;
+      &lt;/linearGradient&gt;
+    &lt;/defs&gt;
+  &lt;/svg&gt;
+
+  &lt;main class="demo" aria-labelledby="demo-title"&gt;
+    &lt;h1 id="demo-title" class="demo__title"&gt;Social Tiles&lt;/h1&gt;
+
+    &lt;div class="demo__controls"&gt;
+      &lt;label class="visually-hidden" for="search"&gt;Search tiles&lt;/label&gt;
+      &lt;input id="search" class="demo__search" type="search" placeholder="Search tiles..." autocomplete="off"&gt;
+      &lt;button id="reset" class="demo__btn" type="button"&gt;Reset&lt;/button&gt;
+      &lt;button id="sound" class="demo__btn" type="button" aria-pressed="true"&gt;Sound: On&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div class="stage" id="stage" role="group" aria-label="Social media tiles"&gt;
+
+      &lt;div class="slot"&gt;
+        &lt;button class="tile" type="button" data-id="facebook" data-label="Facebook" aria-pressed="false" aria-label="Facebook" style="--brand:#1877F2"&gt;
+          &lt;span class="tile__glass"&gt;
+            &lt;svg class="ic" viewBox="0 0 24 24" aria-hidden="true"&gt;
+              &lt;circle class="shape" cx="12" cy="12" r="10"/&gt;
+              &lt;path class="mark" d="M13.5 22v-7.5h2.5l.4-3h-2.9V9.7c0-.9.3-1.5 1.5-1.5h1.5V5.6c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.2H8.8v3h2.5V22z"/&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class="tile__label"&gt;Facebook&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class="slot"&gt;
+        &lt;button class="tile" type="button" data-id="instagram" data-label="Instagram" aria-pressed="false" aria-label="Instagram" style="--brand:#E1306C"&gt;
+          &lt;span class="tile__glass"&gt;
+            &lt;svg class="ic" viewBox="0 0 24 24" aria-hidden="true"&gt;
+              &lt;rect class="ig" x="3" y="3" width="18" height="18" rx="5" fill="none" stroke-width="2.2"/&gt;
+              &lt;circle class="ig" cx="12" cy="12" r="4" fill="none" stroke-width="2.2"/&gt;
+              &lt;circle class="igdot" cx="17.4" cy="6.6" r="1.3"/&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class="tile__label"&gt;Instagram&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class="slot"&gt;
+        &lt;button class="tile" type="button" data-id="tiktok" data-label="TikTok" aria-pressed="false" aria-label="TikTok" style="--brand:#111111"&gt;
+          &lt;span class="tile__glass"&gt;
+            &lt;svg class="ic" viewBox="0 0 24 24" aria-hidden="true"&gt;
+              &lt;path class="tt-c" transform="translate(-.9 -.6)" d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z"/&gt;
+              &lt;path class="tt-p" transform="translate(.9 .6)" d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z"/&gt;
+              &lt;path class="shape" d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a6 6 0 1 0 5 5.9V9.1a7.6 7.6 0 0 0 4.4 1.4V7.3a4.3 4.3 0 0 1-3.3-1.5z"/&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class="tile__label"&gt;TikTok&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class="slot"&gt;
+        &lt;button class="tile" type="button" data-id="pinterest" data-label="Pinterest" aria-pressed="false" aria-label="Pinterest" style="--brand:#E60023"&gt;
+          &lt;span class="tile__glass"&gt;
+            &lt;svg class="ic" viewBox="0 0 24 24" aria-hidden="true"&gt;
+              &lt;circle class="shape" cx="12" cy="12" r="10"/&gt;
+              &lt;text class="mark" x="12" y="16.8" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-weight="700" font-size="13"&gt;P&lt;/text&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class="tile__label"&gt;Pinterest&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class="slot"&gt;
+        &lt;button class="tile" type="button" data-id="linkedin" data-label="LinkedIn" aria-pressed="false" aria-label="LinkedIn" style="--brand:#0A66C2"&gt;
+          &lt;span class="tile__glass"&gt;
+            &lt;svg class="ic" viewBox="0 0 24 24" aria-hidden="true"&gt;
+              &lt;rect class="shape" x="2" y="2" width="20" height="20" rx="4"/&gt;
+              &lt;path class="mark" d="M6.2 9.6h2.6v8.2H6.2zM7.5 5.4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM10.6 9.6h2.5v1.2c.4-.7 1.3-1.4 2.7-1.4 2.8 0 3.3 1.8 3.3 4.2v4.2h-2.6v-3.7c0-.9 0-2.1-1.3-2.1s-1.5 1-1.5 2v3.8h-2.6z"/&gt;
+            &lt;/svg&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;span class="tile__label"&gt;LinkedIn&lt;/span&gt;
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+
+    &lt;p class="demo__hint" id="hint" aria-live="polite"&gt;Hover a tile to see its brand color. Click to select.&lt;/p&gt;
+  &lt;/main&gt;
+
+  &lt;div class="credit"&gt;Created by @stackanddstyle&lt;/div&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</textarea>
+<textarea hidden id="raw-css">/* =========================================================
+   CHANGE COLORS HERE
+   Edit only the values in this block to restyle the demo.
+   Brand colors for each tile are set on the button (--brand).
+   ========================================================= */
+:root {
+  /* Reference theme: light blue demo area, navy ink, blue accent */
+  --bg-top: #f1f6fe;          /* demo background top */
+  --bg-bottom: #e3ebfb;       /* demo background bottom */
+  --glow-violet: rgba(37, 99, 235, 0.14);   /* soft blue glow */
+  --glow-cyan: rgba(14, 165, 233, 0.12);    /* soft sky glow */
+  --ink: #0f1a33;             /* main text (navy) */
+  --ink-soft: #5b6b8f;        /* hints and captions */
+  --accent-a: #2563eb;        /* accent blue */
+  --accent-b: #0ea5e9;        /* accent sky */
+  --icon-idle: #0f1f44;       /* icon colour before hover (navy) */
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-edge: rgba(255, 255, 255, 0.95);
+  --field: #ffffff;
+  --field-line: rgba(37, 99, 235, 0.25);
+  --credit-bg: #0f1f44;       /* navy credit pill */
+  --credit-ink: #ffffff;
+  /* ========================================================= */
+  --focus: 0 0 0 3px rgba(37, 99, 235, 0.45);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+
+body {
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  overflow: hidden;
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- Layout ---------- */
+.demo {
+  min-height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 22px;
+  padding: 28px 20px 60px;
+}
+.demo__title {
+  margin: 0; font-size: 32px; font-weight: 700;
+  font-family: 'Fredoka', 'Poppins', system-ui, sans-serif;
+  color: var(--ink);
+}
+
+.demo__controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+.demo__search, .demo__btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--field-line);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit; font-size: 15px;
+  backdrop-filter: blur(8px);
+}
+.demo__search { width: 220px; }
+.demo__search::placeholder { color: var(--ink-soft); }
+.demo__btn { cursor: pointer; }
+.demo__btn[aria-pressed="false"] { opacity: 0.6; }
+.demo__btn { color: var(--ink); }
+
+.demo__search:focus-visible, .demo__btn:focus-visible, .tile:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 30px; }
+
+.demo__hint { margin: 0; color: var(--ink-soft); font-size: 16px; min-height: 1.4em; }
+
+/* ---------- Glass social tiles ---------- */
+.stage {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 34px 36px;
+  perspective: 800px;
+  padding: 20px;
+  max-width: 1000px;
+}
+
+/* Each slot keeps the tile and its label together.
+   The JS script sets --lift (0..1) and --hide (0..1) on the slot. */
+.slot {
+  --lift: 0;
+  --hide: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  opacity: calc(1 - var(--hide));
+  transform: scale(calc(1 - var(--hide) * 0.5));
+}
+
+.tile {
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  width: 150px; height: 150px;
+  border: 0; padding: 0; background: none; cursor: pointer;
+  transform:
+    perspective(700px)
+    rotateX(var(--rx)) rotateY(var(--ry))
+    translateY(calc(var(--lift) * -12px));
+  will-change: transform;
+}
+
+/* The glass square */
+.tile__glass {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  border-radius: 32px;
+  background: var(--glass);
+  border: 1.5px solid var(--glass-edge);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 16px 34px rgba(37, 99, 235, 0.16);
+}
+
+/* Glow in the brand colour when lifted or selected */
+.tile[aria-pressed="true"] .tile__glass,
+.tile:hover .tile__glass {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 18px 40px color-mix(in srgb, var(--brand) 38%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+.ic { width: 68px; height: 68px; color: var(--icon-idle); transition: none; }
+
+/* Idle: all icon parts show in slate. Mark (letter) is white.
+   On hover or select the shape takes the brand's original colour. */
+.ic .shape { fill: currentColor; }
+.ic .mark  { fill: #ffffff; }
+.ic .ig    { fill: none; stroke: currentColor; }
+.ic .igdot { fill: currentColor; }
+.ic .tt-c, .ic .tt-p { fill: #25F4EE; opacity: 0; }
+.ic .tt-p  { fill: #FE2C55; }
+
+.tile:hover .ic, .tile[aria-pressed="true"] .ic { color: var(--brand); }
+.tile:hover .ic .ig, .tile[aria-pressed="true"] .ic .ig { stroke: url(#igGrad); }
+.tile:hover .ic .igdot, .tile[aria-pressed="true"] .ic .igdot { fill: url(#igGrad); }
+.tile:hover .ic .tt-c, .tile[aria-pressed="true"] .ic .tt-c,
+.tile:hover .ic .tt-p, .tile[aria-pressed="true"] .ic .tt-p { opacity: 1; }
+.tile:hover .ic .mark, .tile[aria-pressed="true"] .ic .mark { fill: #ffffff; }
+
+.tile__label {
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+  pointer-events: none;
+}
+.tile[aria-pressed="true"] ~ .tile__label, .slot:has(.tile[aria-pressed="true"]) .tile__label { color: var(--brand); font-weight: 600; }
+
+/* ---------- Credit pill ---------- */
+.credit {
+  position: fixed; right: 18px; bottom: 16px;
+  padding: 8px 14px; border-radius: 999px;
+  background: var(--credit-bg);
+  border: 1px solid rgba(15, 31, 68, 0.25);
+  color: var(--credit-ink);
+  font-size: 13px; font-weight: 500;
+  backdrop-filter: blur(6px);
+}
+
+/* ---------- Reduced motion: no motion, changes are instant ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tile { will-change: auto; }
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 560px) {
+  .tile { width: 110px; height: 110px; }
+  .ic { width: 50px; height: 50px; }
+  .stage { gap: 22px 18px; }
+  .demo__search { width: 160px; }
+}
+
+/* ---------- Big, readable demo on wide screens (reels and desktop) ---------- */
+@media (min-width: 900px) {
+  .demo { gap: 22px; padding: 44px 24px 120px; justify-content: flex-start; }
+  .demo__title { font-size: 54px; }
+  .demo__controls { gap: 14px; }
+  .demo__search { width: 360px; font-size: 25px; padding: 14px 20px; border-radius: 18px; }
+  .demo__btn { font-size: 25px; padding: 14px 22px; border-radius: 18px; }
+  .demo__hint { font-size: 26px; }
+  .stage { gap: 30px 36px; padding: 6px; max-width: 780px; }
+  .slot { gap: 14px; }
+  .tile { width: 210px; height: 210px; }
+  .tile__glass { border-radius: 46px; }
+  .ic { width: 102px; height: 102px; }
+  .tile__label { font-size: 29px; }
+  .credit { font-size: 22px; padding: 12px 20px; }
+}
+</textarea>
+<textarea hidden id="raw-js">/* =========================================================
+   3D Social Tiles - behaviour
+   - Hover: the tile tilts toward the cursor and shows its brand colour
+   - Click: selects the tile (saved between visits); a short sound plays
+   - Search: typing hides tiles that do not match
+   - Keyboard: Tab / arrows to move, Enter or Space to select, R to reset
+   - Motion is eased once per animation frame; reduced-motion users get instant changes
+   ========================================================= */
+
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'social-tiles:selected';
+  const SOUND_KEY = 'social-tiles:sound';
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const EASE = reduceMotion ? 1 : 0.18;   // 1 = jump straight to the target
+
+  const stage = document.getElementById('stage');
+  const search = document.getElementById('search');
+  const resetBtn = document.getElementById('reset');
+  const soundBtn = document.getElementById('sound');
+  const hint = document.getElementById('hint');
+  const tiles = Array.from(stage.querySelectorAll('.tile'));
+
+  // Per-tile animation state: current values move toward the targets each frame
+  const state = new Map();
+  tiles.forEach((tile) =&gt; {
+    state.set(tile, {
+      lift: 0, hide: 0, hideTarget: 0,
+      rx: 0, ry: 0, tx: 0, ty: 0,     // tilt now and target
+      hover: false, selected: false,
+    });
+  });
+
+  /* ---------- Saved state (storage can fail, so guard it) ---------- */
+  function loadSaved() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch (err) { return []; }
+  }
+  function saveSelected() {
+    const ids = tiles.filter((t) =&gt; state.get(t).selected).map((t) =&gt; t.dataset.id);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)); } catch (err) { /* forget silently */ }
+  }
+  function loadSoundPref() {
+    try { return localStorage.getItem(SOUND_KEY) !== 'off'; } catch (err) { return true; }
+  }
+  function saveSoundPref(on) {
+    try { localStorage.setItem(SOUND_KEY, on ? 'on' : 'off'); } catch (err) { /* ignore */ }
+  }
+
+  /* ---------- Sound: short synthesized tones (no audio files needed) ---------- */
+  let audioCtx = null;
+  let soundOn = loadSoundPref();
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx &amp;&amp; audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  // A tone that glides from freqA to freqB and fades out
+  function tone(freqA, freqB, dur, vol) {
+    if (!soundOn) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freqA, now);
+    osc.frequency.exponentialRampToValueAtTime(freqB, now + dur);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(vol, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+  const playSelect = () =&gt; tone(520, 880, 0.12, 0.18);
+  const playReset = () =&gt; tone(880, 440, 0.22, 0.14);
+
+  function setSoundButton() {
+    soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+    soundBtn.textContent = 'Sound: ' + (soundOn ? 'On' : 'Off');
+  }
+
+  /* ---------- Helpers ---------- */
+  function setPressed(tile, on) { tile.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+  function selectedCount() { return tiles.filter((t) =&gt; state.get(t).selected).length; }
+  function updateHint(message) {
+    hint.textContent = message || (selectedCount() + ' selected. Press R to reset.');
+  }
+
+  /* ---------- Actions ---------- */
+  function toggleTile(tile) {
+    const s = state.get(tile);
+    s.selected = !s.selected;
+    setPressed(tile, s.selected);
+    saveSelected();
+    playSelect();
+    updateHint(tile.dataset.label + (s.selected ? ' selected. ' : ' cleared. ') + selectedCount() + ' selected.');
+  }
+
+  function applySearch() {
+    const q = search.value.trim().toLowerCase();
+    tiles.forEach((t) =&gt; {
+      const match = q === '' || t.dataset.label.toLowerCase().includes(q);
+      state.get(t).hideTarget = match ? 0 : 1;
+      t.dataset.match = match ? 'yes' : 'no';
+    });
+    const visible = tiles.filter((t) =&gt; t.dataset.match === 'yes').length;
+    updateHint(q ? visible + ' tile(s) match "' + search.value.trim() + '".' : undefined);
+  }
+
+  function resetAll() {
+    search.value = '';
+    tiles.forEach((t) =&gt; { state.get(t).selected = false; setPressed(t, false); });
+    saveSelected();
+    applySearch();
+    playReset();
+    updateHint('Reset. Hover a tile to see its brand colour.');
+  }
+
+  /* ---------- Pointer tilt: the tile leans toward the cursor ---------- */
+  function tiltFromPointer(tile, e) {
+    const r = tile.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;    // -0.5..0.5
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    const s = state.get(tile);
+    s.tx = py * -16;    // rotateX (degrees)
+    s.ty = px * 16;     // rotateY (degrees)
+  }
+
+  /* ---------- Events ---------- */
+  tiles.forEach((tile) =&gt; {
+    tile.addEventListener('click', () =&gt; { ensureAudio(); toggleTile(tile); });
+    tile.addEventListener('pointerenter', (e) =&gt; { state.get(tile).hover = true; tiltFromPointer(tile, e); });
+    tile.addEventListener('pointermove', (e) =&gt; tiltFromPointer(tile, e));
+    tile.addEventListener('pointerleave', () =&gt; { const s = state.get(tile); s.hover = false; s.tx = 0; s.ty = 0; });
+    tile.addEventListener('focus', () =&gt; { state.get(tile).hover = true; });
+    tile.addEventListener('blur', () =&gt; { state.get(tile).hover = false; });
+  });
+
+  stage.addEventListener('keydown', (e) =&gt; {
+    const idx = tiles.indexOf(document.activeElement);
+    if (idx &lt; 0) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const next = (idx + (e.key === 'ArrowRight' ? 1 : tiles.length - 1)) % tiles.length;
+      tiles[next].focus();
+    }
+  });
+
+  search.addEventListener('input', applySearch);
+  resetBtn.addEventListener('click', () =&gt; { ensureAudio(); resetAll(); });
+  soundBtn.addEventListener('click', () =&gt; {
+    soundOn = !soundOn;
+    saveSoundPref(soundOn);
+    setSoundButton();
+    if (soundOn) { ensureAudio(); playSelect(); }
+  });
+
+  document.addEventListener('keydown', (e) =&gt; {
+    const typing = e.target instanceof HTMLInputElement;
+    if (!typing &amp;&amp; (e.key === 'r' || e.key === 'R')) resetAll();
+  });
+
+  /* ---------- Restore saved selection ---------- */
+  const saved = loadSaved();
+  tiles.forEach((t) =&gt; {
+    const on = saved.includes(t.dataset.id);
+    state.get(t).selected = on;
+    setPressed(t, on);
+  });
+  setSoundButton();
+  updateHint();
+
+  /* ---------- Animation loop: ease every value toward its target once per frame ---------- */
+  function frame() {
+    tiles.forEach((tile) =&gt; {
+      const s = state.get(tile);
+      const liftTarget = s.selected ? 1 : s.hover ? 0.6 : 0;
+
+      s.lift += (liftTarget - s.lift) * EASE;
+      s.hide += (s.hideTarget - s.hide) * EASE;
+      s.rx += (s.tx - s.rx) * EASE;
+      s.ry += (s.ty - s.ry) * EASE;
+
+      if (Math.abs(liftTarget - s.lift) &lt; 0.001) s.lift = liftTarget;
+      if (Math.abs(s.hideTarget - s.hide) &lt; 0.001) s.hide = s.hideTarget;
+
+      tile.style.setProperty('--rx', s.rx.toFixed(3) + 'deg');
+      tile.style.setProperty('--ry', s.ry.toFixed(3) + 'deg');
+      const slot = tile.parentElement;   // lift and hide live on the slot
+      slot.style.setProperty('--lift', s.lift.toFixed(4));
+      slot.style.setProperty('--hide', s.hide.toFixed(4));
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</textarea>
+
+<script>
+(function(){
+  'use strict';
+  const FILES = { html: 'index.html', css: 'style.css', js: 'script.js' };
+  const area = document.getElementById('codeArea');
+  const tabs = Array.from(document.querySelectorAll('.tab'));
+  const filename = document.getElementById('filename');
+  const copyBtn = document.getElementById('copyBtn');
+  let current = 'html';
+
+  // Show one code pane and select its tab
+  function show(key) {
+    current = key;
+    document.querySelectorAll('.code-pane').forEach(p => { p.hidden = p.dataset.pane !== key; });
+    tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.key === key ? 'true' : 'false'));
+    filename.textContent = FILES[key];
+    area.scrollTop = 0;
+  }
+  tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.key)));
+
+  // Copy the full real file text, then show "Copied" for 1.4 s
+  copyBtn.addEventListener('click', async () => {
+    const text = document.getElementById('raw-' + current).value;
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
+    if (!ok) {
+      const ta = document.getElementById('raw-' + current);
+      ta.hidden = false; ta.select();
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      ta.hidden = true;
+    }
+    copyBtn.textContent = 'Copied';
+    clearTimeout(copyBtn._t);
+    copyBtn._t = setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1400);
+  });
+
+  /* ---- Timeline hooks used by the video recorder (no effect on normal viewing) ---- */
+  window.__ov = (introOp, endOp) => {
+    document.getElementById('intro').style.opacity = introOp;
+    document.getElementById('ending').style.opacity = endOp;
+  };
+  window.__cursor = (x, y, scale, visible) => {
+    const c = document.getElementById('cursor');
+    c.style.opacity = visible ? 1 : 0;
+    c.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+  };
+  window.__scroll = (y) => { area.scrollTop = y; };
+  window.__show = show;
+})();
+</script>
+</body>
+</html>

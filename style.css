@@ -1,0 +1,196 @@
+/* =========================================================
+   CHANGE COLORS HERE
+   Edit only the values in this block to restyle the demo.
+   Brand colors for each tile are set on the button (--brand).
+   ========================================================= */
+:root {
+  /* Reference theme: light blue demo area, navy ink, blue accent */
+  --bg-top: #f1f6fe;          /* demo background top */
+  --bg-bottom: #e3ebfb;       /* demo background bottom */
+  --glow-violet: rgba(37, 99, 235, 0.14);   /* soft blue glow */
+  --glow-cyan: rgba(14, 165, 233, 0.12);    /* soft sky glow */
+  --ink: #0f1a33;             /* main text (navy) */
+  --ink-soft: #5b6b8f;        /* hints and captions */
+  --accent-a: #2563eb;        /* accent blue */
+  --accent-b: #0ea5e9;        /* accent sky */
+  --icon-idle: #0f1f44;       /* icon colour before hover (navy) */
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-edge: rgba(255, 255, 255, 0.95);
+  --field: #ffffff;
+  --field-line: rgba(37, 99, 235, 0.25);
+  --credit-bg: #0f1f44;       /* navy credit pill */
+  --credit-ink: #ffffff;
+  /* ========================================================= */
+  --focus: 0 0 0 3px rgba(37, 99, 235, 0.45);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+
+body {
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  overflow: hidden;
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- Layout ---------- */
+.demo {
+  min-height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 22px;
+  padding: 28px 20px 60px;
+}
+.demo__title {
+  margin: 0; font-size: 32px; font-weight: 700;
+  font-family: 'Fredoka', 'Poppins', system-ui, sans-serif;
+  color: var(--ink);
+}
+
+.demo__controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+.demo__search, .demo__btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--field-line);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit; font-size: 15px;
+  backdrop-filter: blur(8px);
+}
+.demo__search { width: 220px; }
+.demo__search::placeholder { color: var(--ink-soft); }
+.demo__btn { cursor: pointer; }
+.demo__btn[aria-pressed="false"] { opacity: 0.6; }
+.demo__btn { color: var(--ink); }
+
+.demo__search:focus-visible, .demo__btn:focus-visible, .tile:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 30px; }
+
+.demo__hint { margin: 0; color: var(--ink-soft); font-size: 16px; min-height: 1.4em; }
+
+/* ---------- Glass social tiles ---------- */
+.stage {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 34px 36px;
+  perspective: 800px;
+  padding: 20px;
+  max-width: 1000px;
+}
+
+/* Each slot keeps the tile and its label together.
+   The JS script sets --lift (0..1) and --hide (0..1) on the slot. */
+.slot {
+  --lift: 0;
+  --hide: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  opacity: calc(1 - var(--hide));
+  transform: scale(calc(1 - var(--hide) * 0.5));
+}
+
+.tile {
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  width: 150px; height: 150px;
+  border: 0; padding: 0; background: none; cursor: pointer;
+  transform:
+    perspective(700px)
+    rotateX(var(--rx)) rotateY(var(--ry))
+    translateY(calc(var(--lift) * -12px));
+  will-change: transform;
+}
+
+/* The glass square */
+.tile__glass {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  border-radius: 32px;
+  background: var(--glass);
+  border: 1.5px solid var(--glass-edge);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 16px 34px rgba(37, 99, 235, 0.16);
+}
+
+/* Glow in the brand colour when lifted or selected */
+.tile[aria-pressed="true"] .tile__glass,
+.tile:hover .tile__glass {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 18px 40px color-mix(in srgb, var(--brand) 38%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+.ic { width: 68px; height: 68px; color: var(--icon-idle); transition: none; }
+
+/* Idle: all icon parts show in slate. Mark (letter) is white.
+   On hover or select the shape takes the brand's original colour. */
+.ic .shape { fill: currentColor; }
+.ic .mark  { fill: #ffffff; }
+.ic .ig    { fill: none; stroke: currentColor; }
+.ic .igdot { fill: currentColor; }
+.ic .tt-c, .ic .tt-p { fill: #25F4EE; opacity: 0; }
+.ic .tt-p  { fill: #FE2C55; }
+
+.tile:hover .ic, .tile[aria-pressed="true"] .ic { color: var(--brand); }
+.tile:hover .ic .ig, .tile[aria-pressed="true"] .ic .ig { stroke: url(#igGrad); }
+.tile:hover .ic .igdot, .tile[aria-pressed="true"] .ic .igdot { fill: url(#igGrad); }
+.tile:hover .ic .tt-c, .tile[aria-pressed="true"] .ic .tt-c,
+.tile:hover .ic .tt-p, .tile[aria-pressed="true"] .ic .tt-p { opacity: 1; }
+.tile:hover .ic .mark, .tile[aria-pressed="true"] .ic .mark { fill: #ffffff; }
+
+.tile__label {
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+  pointer-events: none;
+}
+.tile[aria-pressed="true"] ~ .tile__label, .slot:has(.tile[aria-pressed="true"]) .tile__label { color: var(--brand); font-weight: 600; }
+
+/* ---------- Credit pill ---------- */
+.credit {
+  position: fixed; right: 18px; bottom: 16px;
+  padding: 8px 14px; border-radius: 999px;
+  background: var(--credit-bg);
+  border: 1px solid rgba(15, 31, 68, 0.25);
+  color: var(--credit-ink);
+  font-size: 13px; font-weight: 500;
+  backdrop-filter: blur(6px);
+}
+
+/* ---------- Reduced motion: no motion, changes are instant ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tile { will-change: auto; }
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 560px) {
+  .tile { width: 110px; height: 110px; }
+  .ic { width: 50px; height: 50px; }
+  .stage { gap: 22px 18px; }
+  .demo__search { width: 160px; }
+}
+
+/* ---------- Big, readable demo on wide screens (reels and desktop) ---------- */
+@media (min-width: 900px) {
+  .demo { gap: 22px; padding: 44px 24px 120px; justify-content: flex-start; }
+  .demo__title { font-size: 54px; }
+  .demo__controls { gap: 14px; }
+  .demo__search { width: 360px; font-size: 25px; padding: 14px 20px; border-radius: 18px; }
+  .demo__btn { font-size: 25px; padding: 14px 22px; border-radius: 18px; }
+  .demo__hint { font-size: 26px; }
+  .stage { gap: 30px 36px; padding: 6px; max-width: 780px; }
+  .slot { gap: 14px; }
+  .tile { width: 210px; height: 210px; }
+  .tile__glass { border-radius: 46px; }
+  .ic { width: 102px; height: 102px; }
+  .tile__label { font-size: 29px; }
+  .credit { font-size: 22px; padding: 12px 20px; }
+}
